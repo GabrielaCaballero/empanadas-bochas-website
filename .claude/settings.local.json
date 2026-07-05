@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.diblubakery.com)",
+      "Bash(curl -s -A \"Mozilla/5.0\" https://www.diblubakery.com/)",
+      "Bash(gh auth *)",
+      "Bash(npm -v)",
+      "Bash(brew --version)",
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --yes)"
+    ]
+  }
+}
