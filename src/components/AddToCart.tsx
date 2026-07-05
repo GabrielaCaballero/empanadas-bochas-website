@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import type { CatalogItem } from "@/lib/square";
+import { flavorInfo } from "@/lib/flavor-info";
 
 export default function AddToCart({ item }: { item: CatalogItem }) {
   const { addItem } = useCart();
@@ -22,6 +24,9 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
     0,
   );
   const canAdd = hasFlavors ? totalFlavorsSelected === required : true;
+  const selectedEntries = Object.entries(flavorCounts).filter(
+    ([, count]) => count > 0,
+  );
 
   function changeFlavor(flavor: string, delta: number) {
     setFlavorCounts((prev) => {
@@ -51,38 +56,76 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
     <div>
       {hasFlavors ? (
         <div className="mt-8">
-          <h2 className="text-sm font-medium text-maroon/60">
-            Choose your flavors ({totalFlavorsSelected}/{required})
-          </h2>
-          <div className="mt-3 flex flex-col gap-2">
-            {item.flavors!.map((flavor) => (
-              <div
-                key={flavor}
-                className="flex items-center justify-between rounded-xl bg-cream px-4 py-2"
-              >
-                <span className="text-maroon">{flavor}</span>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => changeFlavor(flavor, -1)}
-                    className="flex h-7 w-7 items-center justify-center rounded-full border border-maroon/30 text-maroon"
-                  >
-                    −
-                  </button>
-                  <span className="w-4 text-center text-maroon">
-                    {flavorCounts[flavor] ?? 0}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => changeFlavor(flavor, 1)}
-                    className="flex h-7 w-7 items-center justify-center rounded-full border border-maroon/30 text-maroon"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            ))}
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-medium text-maroon/60">
+              Choose your flavors
+            </h2>
+            <span className="text-sm font-semibold text-maroon">
+              {totalFlavorsSelected}/{required}
+            </span>
           </div>
+
+          <div className="mt-3 flex flex-col gap-2">
+            {item.flavors!.map((flavor) => {
+              const info = flavorInfo.find((f) => f.name === flavor);
+              const count = flavorCounts[flavor] ?? 0;
+              return (
+                <div
+                  key={flavor}
+                  className={`flex items-center gap-3 rounded-2xl border p-2 transition-colors ${
+                    count > 0
+                      ? "border-terracotta bg-terracotta/5"
+                      : "border-maroon/10"
+                  }`}
+                >
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-cream">
+                    {info?.image && (
+                      <Image
+                        src={info.image}
+                        alt={flavor}
+                        fill
+                        className="object-cover"
+                        sizes="56px"
+                      />
+                    )}
+                  </div>
+                  <span className="flex-1 text-sm font-medium text-maroon">
+                    {flavor}
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => changeFlavor(flavor, -1)}
+                      className="flex h-7 w-7 items-center justify-center rounded-full border border-maroon/30 text-maroon"
+                    >
+                      −
+                    </button>
+                    <span className="w-4 text-center text-maroon">
+                      {count}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => changeFlavor(flavor, 1)}
+                      className="flex h-7 w-7 items-center justify-center rounded-full border border-maroon/30 text-maroon"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {selectedEntries.length > 0 && (
+            <div className="mt-3 rounded-xl bg-cream px-4 py-2 text-sm text-maroon/80">
+              <span className="font-medium text-maroon">
+                Selected flavors:{" "}
+              </span>
+              {selectedEntries
+                .map(([flavor, count]) => `${count}x ${flavor}`)
+                .join(", ")}
+            </div>
+          )}
         </div>
       ) : (
         <div className="mt-8 flex items-center gap-3">

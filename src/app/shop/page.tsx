@@ -20,7 +20,7 @@ export default async function ShopPage() {
 
           return (
             <Link key={item.id} href={`/shop/${item.id}`} className="group block">
-              <div className="relative aspect-square overflow-hidden rounded-2xl bg-cream">
+              <div className="relative aspect-square overflow-hidden rounded-3xl bg-cream shadow-sm transition-shadow duration-300 group-hover:shadow-xl">
                 {item.imageUrl && (
                   <Image
                     src={item.imageUrl}
@@ -31,10 +31,10 @@ export default async function ShopPage() {
                   />
                 )}
               </div>
-              <h2 className="mt-3 font-display text-lg font-semibold text-maroon">
+              <h2 className="mt-4 font-display text-lg font-semibold text-maroon">
                 {item.name.trim()}
               </h2>
-              <p className="text-terracotta font-medium">
+              <p className="mt-0.5 text-terracotta font-medium">
                 {price ?? "Ask for pricing"}
               </p>
             </Link>

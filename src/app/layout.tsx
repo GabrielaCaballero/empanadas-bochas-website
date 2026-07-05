@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
-import { Fraunces, Work_Sans } from "next/font/google";
+import { Bricolage_Grotesque, Inter } from "next/font/google";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { CartProvider } from "@/lib/cart-context";
 import "./globals.css";
 
-const bodyFont = Work_Sans({
+const bodyFont = Inter({
   variable: "--font-body",
   subsets: ["latin"],
 });
 
-const displayFont = Fraunces({
+const displayFont = Bricolage_Grotesque({
   variable: "--font-display",
   subsets: ["latin"],
 });
