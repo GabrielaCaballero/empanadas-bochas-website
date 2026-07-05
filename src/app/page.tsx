@@ -2,15 +2,27 @@ import Image from "next/image";
 import Link from "next/link";
 
 const photos = [
-  { src: "/photos/empanada-2.png", alt: "Box of Empanadas Bochas empanadas" },
-  { src: "/photos/empanada-3.png", alt: "Empanadas served with dipping sauce" },
-  { src: "/photos/empanada-1.png", alt: "Hands holding a fresh empanada" },
+  {
+    src: "/photos/empanada-2.png",
+    alt: "Box of Empanadas Bochas empanadas",
+    span: "sm:col-span-2 sm:row-span-2",
+  },
+  {
+    src: "/photos/empanada-3.png",
+    alt: "Empanadas served with dipping sauce",
+    span: "",
+  },
+  {
+    src: "/photos/empanada-1.png",
+    alt: "Hands holding a fresh empanada",
+    span: "",
+  },
 ];
 
 export default function Home() {
   return (
     <div className="flex flex-1 flex-col">
-      <section className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center gap-6 px-6 py-24 text-center">
+      <section className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center gap-6 px-6 pt-20 pb-10 text-center">
         <span className="rounded-full bg-cream px-4 py-1 text-sm font-medium text-rust">
           Homemade · Argentina to NYC
         </span>
@@ -37,18 +49,18 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-4 px-6 pb-24 sm:grid-cols-3">
+      <section className="grid w-full grid-cols-1 gap-1 pb-16 sm:grid-cols-3 sm:grid-rows-2 sm:h-[600px]">
         {photos.map((photo) => (
           <div
             key={photo.src}
-            className="relative aspect-square overflow-hidden rounded-2xl bg-cream"
+            className={`group relative aspect-square overflow-hidden sm:aspect-auto ${photo.span}`}
           >
             <Image
               src={photo.src}
               alt={photo.alt}
               fill
-              className="object-cover"
-              sizes="(min-width: 640px) 33vw, 100vw"
+              className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+              sizes="(min-width: 640px) 66vw, 100vw"
             />
           </div>
         ))}
