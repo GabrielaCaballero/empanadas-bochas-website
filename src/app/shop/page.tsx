@@ -11,7 +11,7 @@ export default async function ShopPage() {
     <section className="mx-auto w-full max-w-6xl flex-1 px-6 py-16">
       <h1 className="font-display text-4xl font-semibold text-maroon">Shop</h1>
       <p className="mt-3 max-w-xl text-maroon/70">
-        Our full menu, synced straight from Square.
+        Order online for pickup or delivery.
       </p>
 
       <div className="mt-10 grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
@@ -20,7 +20,7 @@ export default async function ShopPage() {
 
           return (
             <Link key={item.id} href={`/shop/${item.id}`} className="group block">
-              <div className="relative aspect-square overflow-hidden rounded-2xl bg-cream">
+              <div className="relative aspect-square overflow-hidden rounded-3xl bg-cream shadow-sm transition-shadow duration-300 group-hover:shadow-xl">
                 {item.imageUrl && (
                   <Image
                     src={item.imageUrl}
@@ -31,10 +31,10 @@ export default async function ShopPage() {
                   />
                 )}
               </div>
-              <h2 className="mt-3 font-display text-lg font-semibold text-maroon">
+              <h2 className="mt-4 font-display text-lg font-semibold text-maroon">
                 {item.name.trim()}
               </h2>
-              <p className="text-terracotta font-medium">
+              <p className="mt-0.5 text-terracotta font-medium">
                 {price ?? "Ask for pricing"}
               </p>
             </Link>

@@ -48,7 +48,7 @@ export const flavorInfo: FlavorInfo[] = [
   },
   {
     name: "Pork BBQ",
-    image: null,
+    image: "/menu/pork-bbq.png",
     description:
       "Slow-cooked pulled pork tossed in smoky BBQ sauce with melted cheese. Sweet, smoky, and satisfying.",
     ingredients:
