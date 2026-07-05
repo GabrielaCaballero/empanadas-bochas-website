@@ -14,6 +14,7 @@ export type CatalogItem = {
   imageUrl: string | null;
   variations: CatalogVariation[];
   flavors: string[] | null;
+  requiredFlavorCount: number | null;
 };
 
 type SquareObject = Record<string, any>;
@@ -70,11 +71,15 @@ export async function getCatalogItems(): Promise<CatalogItem[]> {
     const imageId: string | undefined = itemData.image_ids?.[0];
     const imageUrl = imageId ? (imageUrlsById.get(imageId) ?? null) : null;
 
-    const modifierListId: string | undefined =
-      itemData.modifier_list_info?.[0]?.modifier_list_id;
+    const modifierInfo = itemData.modifier_list_info?.[0];
+    const modifierListId: string | undefined = modifierInfo?.modifier_list_id;
     const flavors = modifierListId
       ? (flavorsByModifierListId.get(modifierListId) ?? null)
       : null;
+    const requiredFlavorCount =
+      flavors && modifierInfo?.max_selected_modifiers > 0
+        ? modifierInfo.max_selected_modifiers
+        : null;
 
     const variations: CatalogVariation[] = (itemData.variations ?? []).map(
       (v: SquareObject) => ({
@@ -91,6 +96,7 @@ export async function getCatalogItems(): Promise<CatalogItem[]> {
       imageUrl,
       variations,
       flavors,
+      requiredFlavorCount,
     });
   }
 

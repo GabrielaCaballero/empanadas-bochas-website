@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { getCatalogItems, formatPrice } from "@/lib/square";
+import AddToCart from "@/components/AddToCart";
 
 export const revalidate = 300;
 
@@ -46,30 +47,7 @@ export default async function ProductPage({
             <p className="mt-4 text-maroon/70">{item.description}</p>
           )}
 
-          {item.flavors && (
-            <div className="mt-8">
-              <h2 className="text-sm font-medium text-maroon/60">
-                Choose your flavors
-              </h2>
-              <ul className="mt-2 flex flex-wrap gap-2">
-                {item.flavors.map((flavor) => (
-                  <li
-                    key={flavor}
-                    className="rounded-full bg-cream px-3 py-1 text-sm text-maroon"
-                  >
-                    {flavor}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <button
-            type="button"
-            className="mt-10 rounded-full bg-terracotta px-6 py-3 font-semibold text-background transition-colors hover:bg-rust"
-          >
-            Add to Cart
-          </button>
+          <AddToCart item={item} />
         </div>
       </div>
 

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useCart } from "@/lib/cart-context";
 
 const links = [
   { href: "/", label: "Home" },
@@ -13,6 +14,7 @@ const links = [
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const { totalCount } = useCart();
 
   return (
     <header className="sticky top-0 z-50 border-b border-maroon/10 bg-background/95 backdrop-blur">
@@ -44,7 +46,7 @@ export default function Navbar() {
             href="/cart"
             className="rounded-full bg-terracotta px-4 py-2 text-sm font-semibold text-background transition-colors hover:bg-rust"
           >
-            Cart
+            Cart{totalCount > 0 ? ` (${totalCount})` : ""}
           </Link>
         </nav>
 
@@ -77,7 +79,7 @@ export default function Navbar() {
             onClick={() => setOpen(false)}
             className="mt-2 rounded-full bg-terracotta px-4 py-2 text-center text-sm font-semibold text-background"
           >
-            Cart
+            Cart{totalCount > 0 ? ` (${totalCount})` : ""}
           </Link>
         </nav>
       )}
