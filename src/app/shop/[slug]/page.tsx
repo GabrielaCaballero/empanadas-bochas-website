@@ -2,7 +2,9 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { getCatalogItems, formatPrice } from "@/lib/square";
+import { flavorInfo } from "@/lib/flavor-info";
 import AddToCart from "@/components/AddToCart";
+import Accordion from "@/components/Accordion";
 
 export const revalidate = 300;
 
@@ -48,6 +50,36 @@ export default async function ProductPage({
           )}
 
           <AddToCart item={item} />
+
+          <div className="mt-10">
+            {item.flavors && (
+              <>
+                <Accordion title="Flavors & Ingredients" defaultOpen>
+                  <div className="flex flex-col gap-4">
+                    {flavorInfo
+                      .filter((f) => item.flavors!.includes(f.name))
+                      .map((flavor) => (
+                        <div key={flavor.name}>
+                          <p className="font-semibold text-maroon">
+                            {flavor.name}
+                          </p>
+                          <p className="mt-1 text-sm">{flavor.ingredients}</p>
+                        </div>
+                      ))}
+                  </div>
+                </Accordion>
+                <Accordion title="Storage & Reheating">
+                  <p>
+                    Refrigerate and enjoy within 3 days, or freeze for up to 2
+                    months. Reheat in the oven at 350°F for 10-12 minutes (or
+                    straight from frozen at 375°F for about 20 minutes) until
+                    warmed through and crisp. Microwaving works in a pinch,
+                    but the crust won&rsquo;t stay as flaky.
+                  </p>
+                </Accordion>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

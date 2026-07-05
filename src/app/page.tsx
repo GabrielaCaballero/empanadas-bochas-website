@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { flavorInfo } from "@/lib/flavor-info";
 
 const photos = [
   {
@@ -9,33 +10,6 @@ const photos = [
   {
     src: "/photos/empanada-1.png",
     alt: "Hands holding a fresh empanada",
-  },
-];
-
-const flavors = [
-  {
-    name: "Beef Malbec",
-    image: "/menu/beef-malbec.webp",
-    description:
-      "Slow-cooked beef, tender and flavorful, marinated in Argentine Malbec wine. Rich, juicy, and deeply savory.",
-  },
-  {
-    name: "Chicken Scallion",
-    image: "/menu/chicken-scallion.webp",
-    description:
-      "Creamy chicken filling with fresh scallions, perfectly balanced and comforting, with a smooth and savory finish.",
-  },
-  {
-    name: "Fugazzeta",
-    image: "/menu/fugazzeta.webp",
-    description:
-      "Sweet caramelized onions and melted mozzarella cheese, inspired by the classic Argentine pizza. Bold, cheesy, and irresistible.",
-  },
-  {
-    name: "Ham & Cheese",
-    image: "/menu/ham-cheese.webp",
-    description:
-      "Classic ham and melted cheese wrapped in a golden baked crust. Simple, comforting, and always a favorite.",
   },
 ];
 
@@ -133,16 +107,18 @@ export default function Home() {
         </div>
 
         <div className="mt-12 grid grid-cols-1 gap-10 sm:grid-cols-2">
-          {flavors.map((flavor) => (
+          {flavorInfo.map((flavor) => (
             <div key={flavor.name} className="flex gap-5">
               <div className="relative aspect-square w-28 shrink-0 overflow-hidden rounded-2xl bg-cream sm:w-36">
-                <Image
-                  src={flavor.image}
-                  alt={flavor.name}
-                  fill
-                  className="object-cover"
-                  sizes="(min-width: 640px) 144px, 112px"
-                />
+                {flavor.image && (
+                  <Image
+                    src={flavor.image}
+                    alt={flavor.name}
+                    fill
+                    className="object-cover"
+                    sizes="(min-width: 640px) 144px, 112px"
+                  />
+                )}
               </div>
               <div>
                 <h3 className="font-display text-xl font-semibold text-maroon">
