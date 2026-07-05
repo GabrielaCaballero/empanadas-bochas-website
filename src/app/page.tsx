@@ -33,7 +33,7 @@ export default function Home() {
           Find us pouring beers and slinging empanadas at breweries around
           NYC, or order ahead for pickup and delivery.
         </p>
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
           <Link
             href="/shop"
             className="rounded-full bg-terracotta px-6 py-3 font-semibold text-background transition-colors hover:bg-rust"
