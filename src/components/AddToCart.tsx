@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import type { CatalogItem } from "@/lib/square";
 
@@ -13,7 +14,8 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
 
   const [flavorCounts, setFlavorCounts] = useState<Record<string, number>>({});
   const [quantity, setQuantity] = useState(1);
-  const [added, setAdded] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
+  const [lastAddedCount, setLastAddedCount] = useState(0);
 
   const totalFlavorsSelected = Object.values(flavorCounts).reduce(
     (a, b) => a + b,
@@ -27,6 +29,7 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
       if (delta > 0 && totalFlavorsSelected >= required) return prev;
       return { ...prev, [flavor]: Math.max(0, current + delta) };
     });
+    setJustAdded(false);
   }
 
   function handleAdd() {
@@ -38,10 +41,10 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
       quantity: hasFlavors ? 1 : quantity,
       flavors: hasFlavors ? flavorCounts : undefined,
     });
-    setAdded(true);
+    setLastAddedCount(hasFlavors ? required : quantity);
+    setJustAdded(true);
     setFlavorCounts({});
     setQuantity(1);
-    setTimeout(() => setAdded(false), 2000);
   }
 
   return (
@@ -107,8 +110,28 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
         onClick={handleAdd}
         className="mt-6 rounded-full bg-terracotta px-6 py-3 font-semibold text-background transition-colors hover:bg-rust disabled:cursor-not-allowed disabled:opacity-40"
       >
-        {added ? "Added!" : "Add to Cart"}
+        Add to Cart
       </button>
+
+      {justAdded && (
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl bg-cream px-4 py-3 text-sm">
+          <span className="text-maroon">
+            ✓ Added {lastAddedCount} to cart
+          </span>
+          <Link
+            href="/cart"
+            className="font-semibold text-terracotta hover:text-rust"
+          >
+            View Cart
+          </Link>
+          <Link
+            href="/shop"
+            className="font-semibold text-maroon hover:text-terracotta"
+          >
+            Continue Shopping
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
