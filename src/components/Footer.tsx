@@ -21,8 +21,8 @@ export default function Footer() {
           <a href="mailto:empanadasbochas@gmail.com" className="hover:text-background">
             empanadasbochas@gmail.com
           </a>
-          <a href="tel:+13476353853" className="hover:text-background">
-            +1 (347) 635-3853
+          <a href="tel:+19178303570" className="hover:text-background">
+            +1 (917) 830-3570
           </a>
         </div>
       </div>

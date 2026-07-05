@@ -60,7 +60,7 @@ Each event/stop shows: venue name, address (with map), date/time, the venue's In
 No live storefront and delivery is via Uber (variable cost by distance), so checkout branches into three paths rather than a single generic flow:
 
 1. **Pickup — at an event.** Customer picks one of the scheduled stops from the Events data and pays immediately. Implemented by calling Square's Checkout API server-side (not a manually pre-made static link) so the resulting Square Order is itemized with real line items and a note (e.g. "Pickup: [venue], [date]"). This is what makes the order traceable — a static link has no item/pickup context.
-2. **Pickup — at her kitchen** (45-21 45th Street, Long Island City, NY 11104). No online payment; a WhatsApp "click to chat" link (`wa.me/13476353853?text=...`, prefilled with an order summary) lets the customer message the business directly to arrange pickup and payment.
+2. **Pickup — at her kitchen** (45-21 45th Street, Long Island City, NY 11104). No online payment; a WhatsApp "click to chat" link (`wa.me/19178303570?text=...`, prefilled with an order summary) lets the customer message the business directly to arrange pickup and payment.
 3. **Delivery.** Customer submits an order + address + preferred date via a form (no payment collected yet). This mirrors Di Blu's own fallback for non-standard delivery: they manually quote a fee and send a payment link. Here, the business owner receives an email with the order, calculates the Uber delivery cost herself, and sends the customer a Square Checkout Link to pay.
 
 **Order tracking:** Square Dashboard → Orders is the system of record (same place the owner already checks for sales) for paid orders. In addition, every order/request (all three paths) triggers an automatic email via Resend:
@@ -80,7 +80,7 @@ No live storefront and delivery is via Uber (variable cost by distance), so chec
 ## Business contact details
 
 - Email: `empanadasbochas@gmail.com`
-- Phone / WhatsApp: `+1 (347) 635-3853`
+- Phone / WhatsApp: `+1 (917) 830-3570`
 - Fixed pickup address: 45-21 45th Street, Long Island City, NY 11104, USA
 
 ## Open items

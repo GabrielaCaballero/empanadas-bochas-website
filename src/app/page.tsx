@@ -1,4 +1,11 @@
+import Image from "next/image";
 import Link from "next/link";
+
+const photos = [
+  { src: "/photos/empanada-2.png", alt: "Box of Empanadas Bochas empanadas" },
+  { src: "/photos/empanada-3.png", alt: "Empanadas served with dipping sauce" },
+  { src: "/photos/empanada-1.png", alt: "Hands holding a fresh empanada" },
+];
 
 export default function Home() {
   return (
@@ -25,9 +32,26 @@ export default function Home() {
             href="/events"
             className="rounded-full border border-maroon/20 px-6 py-3 font-semibold text-maroon transition-colors hover:bg-maroon/5"
           >
-            Find Us This Week
+            Find Us This Month
           </Link>
         </div>
+      </section>
+
+      <section className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-4 px-6 pb-24 sm:grid-cols-3">
+        {photos.map((photo) => (
+          <div
+            key={photo.src}
+            className="relative aspect-square overflow-hidden rounded-2xl bg-cream"
+          >
+            <Image
+              src={photo.src}
+              alt={photo.alt}
+              fill
+              className="object-cover"
+              sizes="(min-width: 640px) 33vw, 100vw"
+            />
+          </div>
+        ))}
       </section>
     </div>
   );
