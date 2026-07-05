@@ -27,7 +27,7 @@ export default function Home() {
           className="object-cover"
           sizes="100vw"
         />
-        <div className="absolute inset-0 bg-maroon/55" />
+        <div className="absolute inset-0 bg-gradient-to-b from-maroon/45 via-maroon/70 to-maroon/45" />
 
         <div className="relative z-10 flex flex-col items-center gap-6 px-6 text-center text-cream">
           <span className="rounded-full bg-cream/15 px-4 py-1 text-sm font-medium ring-1 ring-cream/40 backdrop-blur-sm">
@@ -128,7 +128,7 @@ export default function Home() {
 
       <Testimonials />
 
-      <section className="mx-auto w-full max-w-6xl px-6 py-24">
+      <section className="mx-auto w-full max-w-6xl px-6 pt-8 pb-24">
         <div className="text-center">
           <h2 className="font-display text-3xl font-semibold text-maroon sm:text-4xl">
             Our Flavors

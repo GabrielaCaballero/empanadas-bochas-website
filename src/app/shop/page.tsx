@@ -11,7 +11,7 @@ export default async function ShopPage() {
     <section className="mx-auto w-full max-w-6xl flex-1 px-6 py-16">
       <h1 className="font-display text-4xl font-semibold text-maroon">Shop</h1>
       <p className="mt-3 max-w-xl text-maroon/70">
-        Our full menu, synced straight from Square.
+        Order online for pickup or delivery.
       </p>
 
       <div className="mt-10 grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">

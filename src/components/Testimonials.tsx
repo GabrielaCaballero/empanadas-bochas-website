@@ -10,7 +10,7 @@ type Testimonial = {
 const testimonials: Testimonial[] = [
   {
     quote:
-      "One bite and I was back in Buenos Aires. It's exactly the taste I grew up with.",
+      "Delicious, fast, and so convenient — I'm not much of a cook, so I keep a few boxes in my freezer and pull one out whenever I'm hungry for something great.",
     name: "Gabriela Caballero",
   },
   {
@@ -25,7 +25,7 @@ const testimonials: Testimonial[] = [
   },
   {
     quote:
-      "You can tell these are made with real care. My whole family is obsessed.",
+      "One bite and I was back in Buenos Aires. It's exactly the taste I grew up with.",
     name: "Joan La Madrid",
   },
 ];
@@ -43,7 +43,7 @@ export default function Testimonials() {
   }
 
   return (
-    <section className="px-6 py-24">
+    <section className="px-6 pt-24 pb-8">
       <div className="mx-auto max-w-3xl rounded-3xl bg-cream px-8 py-16 text-center">
         <p className="font-display text-2xl font-semibold text-maroon sm:text-3xl">
           &ldquo;{current.quote}&rdquo;
