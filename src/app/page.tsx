@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { flavorInfo } from "@/lib/flavor-info";
+import VideoHero from "@/components/VideoHero";
+import Testimonials from "@/components/Testimonials";
 
 const photos = [
   {
@@ -72,29 +74,59 @@ export default function Home() {
         ))}
       </section>
 
-      <section className="bg-maroon px-6 py-24 text-cream">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="font-display text-3xl font-semibold sm:text-4xl">
-            Meet Empanadas Bochas
-          </h2>
-          <p className="mt-6 text-lg leading-relaxed text-cream/85">
-            Empanadas Bochas was born from the flavors we grew up with. The
-            kind of food that brings families together around the table.
-            Inspired by traditional Argentine home cooking, our empanadas are
-            made by hand, just like in family kitchens back home.
-          </p>
-          <p className="mt-6 text-lg leading-relaxed text-cream/85">
-            Each recipe is rooted in tradition, slow-cooked with care and
-            baked fresh to capture the warmth, comfort, and nostalgia of a
-            shared meal. For us, empanadas are more than food — they&rsquo;re
-            a way of sharing memories, stories, and a taste of home.
-          </p>
-          <p className="mt-6 text-lg leading-relaxed text-cream/85">
-            Now in New York, we&rsquo;re proud to bring those familiar
-            Argentine flavors to new tables, one empanada at a time.
-          </p>
+      <VideoHero />
+
+      <section className="overflow-hidden bg-cream px-6 py-24 sm:px-12">
+        <div className="mx-auto flex max-w-6xl flex-col gap-20">
+          <div className="grid items-center gap-10 sm:grid-cols-2">
+            <div className="relative mx-auto aspect-4/5 w-full max-w-sm -rotate-2 overflow-hidden rounded-3xl shadow-xl sm:mx-0">
+              <Image
+                src="/photos/empanada-4.png"
+                alt="Trays of freshly baked empanadas"
+                fill
+                className="object-cover"
+                sizes="(min-width: 640px) 400px, 100vw"
+              />
+            </div>
+            <div>
+              <h2 className="font-display text-4xl font-bold text-maroon sm:text-5xl">
+                Made by Hand, Batch by Batch
+              </h2>
+              <p className="mt-4 text-lg leading-relaxed text-maroon/75">
+                Empanadas Bochas was born from the flavors we grew up with —
+                the kind of food that brings families together around the
+                table. Every empanada is folded and baked by hand, just like
+                in family kitchens back home.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid items-center gap-10 sm:grid-cols-2">
+            <div className="order-2 sm:order-1">
+              <h2 className="font-display text-3xl font-bold text-terracotta sm:text-4xl">
+                From Buenos Aires to NYC
+              </h2>
+              <p className="mt-4 text-lg leading-relaxed text-maroon/75">
+                Each recipe is rooted in tradition, slow-cooked with care to
+                capture the warmth and nostalgia of a shared meal. Now in New
+                York, we&rsquo;re proud to bring those familiar Argentine
+                flavors to new tables, one empanada at a time.
+              </p>
+            </div>
+            <div className="relative order-1 mx-auto aspect-4/5 w-full max-w-sm rotate-2 overflow-hidden rounded-3xl shadow-xl sm:order-2 sm:mx-0">
+              <Image
+                src="/photos/empanada-5.png"
+                alt="Cross-section of four empanada flavors"
+                fill
+                className="object-cover"
+                sizes="(min-width: 640px) 400px, 100vw"
+              />
+            </div>
+          </div>
         </div>
       </section>
+
+      <Testimonials />
 
       <section className="mx-auto w-full max-w-6xl px-6 py-24">
         <div className="text-center">
