@@ -9,10 +9,17 @@ import { flavorInfo } from "@/lib/flavor-info";
 
 export default function AddToCart({ item }: { item: CatalogItem }) {
   const { addItem } = useCart();
-  const price = item.variations[0]?.priceCents ?? 0;
-  const variationId = item.variations[0]?.id ?? "";
   const required = item.requiredFlavorCount ?? 0;
   const hasFlavors = Boolean(item.flavors?.length && required > 0);
+  const hasVariantChoice = !hasFlavors && item.variations.length > 1;
+
+  const [selectedVariationId, setSelectedVariationId] = useState(
+    item.variations[0]?.id ?? "",
+  );
+  const selectedVariation =
+    item.variations.find((v) => v.id === selectedVariationId) ??
+    item.variations[0];
+  const price = selectedVariation?.priceCents ?? 0;
 
   const [flavorCounts, setFlavorCounts] = useState<Record<string, number>>({});
   const [quantity, setQuantity] = useState(1);
@@ -38,10 +45,14 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
   }
 
   function handleAdd() {
+    const name = hasVariantChoice
+      ? `${item.name.trim()} - ${selectedVariation?.name}`
+      : item.name.trim();
+
     addItem({
       itemId: item.id,
-      variationId,
-      name: item.name.trim(),
+      variationId: selectedVariation?.id ?? "",
+      name,
       unitPriceCents: price,
       quantity: hasFlavors ? 1 : quantity,
       flavors: hasFlavors ? flavorCounts : undefined,
@@ -128,22 +139,48 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
           )}
         </div>
       ) : (
-        <div className="mt-8 flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-maroon/30 text-maroon"
-          >
-            −
-          </button>
-          <span className="w-6 text-center text-maroon">{quantity}</span>
-          <button
-            type="button"
-            onClick={() => setQuantity((q) => q + 1)}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-maroon/30 text-maroon"
-          >
-            +
-          </button>
+        <div className="mt-8 flex flex-col gap-4">
+          {hasVariantChoice && (
+            <div>
+              <h2 className="text-sm font-medium text-maroon/60">
+                Choose an option
+              </h2>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {item.variations.map((variation) => (
+                  <button
+                    key={variation.id}
+                    type="button"
+                    onClick={() => setSelectedVariationId(variation.id)}
+                    className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                      variation.id === selectedVariationId
+                        ? "border-terracotta bg-terracotta text-background"
+                        : "border-maroon/30 text-maroon hover:bg-maroon/5"
+                    }`}
+                  >
+                    {variation.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-maroon/30 text-maroon"
+            >
+              −
+            </button>
+            <span className="w-6 text-center text-maroon">{quantity}</span>
+            <button
+              type="button"
+              onClick={() => setQuantity((q) => q + 1)}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-maroon/30 text-maroon"
+            >
+              +
+            </button>
+          </div>
         </div>
       )}
 

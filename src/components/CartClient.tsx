@@ -59,11 +59,11 @@ export default function CartClient({
         empanadas separately — they all add up in one cart.
       </p>
 
-      <ul className="mt-10 flex flex-col gap-6">
+      <ul className="mt-10 flex flex-col gap-4">
         {items.map((item) => (
           <li
             key={item.id}
-            className="flex items-start justify-between gap-4 border-b border-maroon/10 pb-6"
+            className="flex items-start justify-between gap-4 rounded-3xl bg-cream p-6"
           >
             <div>
               <h2 className="font-display text-lg font-semibold text-maroon">
