@@ -22,7 +22,7 @@ const photos = [
 export default function Home() {
   return (
     <div className="flex flex-1 flex-col">
-      <section className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center gap-6 px-6 pt-20 pb-10 text-center">
+      <section className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center gap-6 px-6 pt-8 pb-10 text-center">
         <span className="rounded-full bg-cream px-4 py-1 text-sm font-medium text-rust">
           Homemade · Argentina to NYC
         </span>
