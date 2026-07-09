@@ -17,6 +17,9 @@ export type CatalogItem = {
   requiredFlavorCount: number | null;
 };
 
+// Square's catalog JSON is deeply nested and only partially used here, so a
+// loose type is the pragmatic choice for this internal parsing helper.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SquareObject = Record<string, any>;
 
 async function fetchCatalogObjects(): Promise<SquareObject[]> {
