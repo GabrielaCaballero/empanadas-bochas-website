@@ -54,4 +54,12 @@ export const flavorInfo: FlavorInfo[] = [
     ingredients:
       "Pulled pork, BBQ sauce, mozzarella cheese, empanada dough (wheat flour, butter).",
   },
+  {
+    name: "Buffalo Chicken",
+    image: "/menu/buffalo-chicken.jpeg",
+    description:
+      "Shredded chicken tossed in spicy buffalo sauce with a touch of cream cheese. Bold, tangy, and packs some heat.",
+    ingredients:
+      "Chicken, buffalo sauce, cream cheese, empanada dough (wheat flour, butter).",
+  },
 ];
