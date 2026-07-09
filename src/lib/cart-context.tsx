@@ -47,10 +47,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    // Intentionally reading localStorage post-mount (not in a lazy useState
+    // initializer) so server and first client render match, avoiding a
+    // hydration mismatch — the eslint rule's "cascading renders" concern
+    // doesn't apply since this only ever runs once, on mount.
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed: StoredCart = JSON.parse(raw);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setItems(parsed.items ?? []);
         setSauces(parsed.sauces ?? {});
       }

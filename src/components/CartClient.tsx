@@ -185,12 +185,12 @@ export default function CartClient({
         <span>{formatPrice(grandTotalCents)}</span>
       </div>
 
-      <button
-        type="button"
-        className="mt-8 w-full rounded-full bg-terracotta px-6 py-3 font-semibold text-background transition-colors hover:bg-rust"
+      <Link
+        href="/checkout"
+        className="mt-8 block w-full rounded-full bg-terracotta px-6 py-3 text-center font-semibold text-background transition-colors hover:bg-rust"
       >
         Checkout
-      </button>
+      </Link>
     </section>
   );
 }
