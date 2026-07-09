@@ -17,6 +17,9 @@ export type CatalogItem = {
   requiredFlavorCount: number | null;
 };
 
+// Square's catalog JSON is deeply nested and only partially used here, so a
+// loose type is the pragmatic choice for this internal parsing helper.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SquareObject = Record<string, any>;
 
 async function fetchCatalogObjects(): Promise<SquareObject[]> {
@@ -111,4 +114,66 @@ export async function getCatalogItem(id: string): Promise<CatalogItem | null> {
 export function formatPrice(cents: number | null): string | null {
   if (cents == null) return null;
   return `$${(cents / 100).toFixed(2)}`;
+}
+
+const SQUARE_SANDBOX_BASE_URL = "https://connect.squareupsandbox.com";
+
+export type CheckoutLineItem = {
+  name: string;
+  quantity: number;
+  unitPriceCents: number;
+  note?: string;
+};
+
+// Uses the Sandbox environment on purpose — checkout hasn't been switched to
+// production yet (see docs/PRD.md). Line items are ad-hoc (name + price)
+// rather than referencing catalog objects, since the Sandbox account has an
+// entirely separate, empty catalog from the real production one.
+export async function createPaymentLink(
+  lineItems: CheckoutLineItem[],
+): Promise<{ id: string; url: string; orderId: string }> {
+  const token = process.env.SQUARE_SANDBOX_ACCESS_TOKEN;
+  const locationId = process.env.SQUARE_SANDBOX_LOCATION_ID;
+  if (!token || !locationId) {
+    throw new Error("Missing Square sandbox credentials");
+  }
+
+  const res = await fetch(
+    `${SQUARE_SANDBOX_BASE_URL}/v2/online-checkout/payment-links`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Square-Version": SQUARE_VERSION,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        idempotency_key: crypto.randomUUID(),
+        order: {
+          location_id: locationId,
+          line_items: lineItems.map((item) => ({
+            name: item.name,
+            quantity: String(item.quantity),
+            note: item.note,
+            base_price_money: {
+              amount: item.unitPriceCents,
+              currency: "USD",
+            },
+          })),
+        },
+      }),
+    },
+  );
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Square payment link request failed: ${res.status} ${body}`);
+  }
+
+  const data = await res.json();
+  return {
+    id: data.payment_link.id,
+    url: data.payment_link.url,
+    orderId: data.payment_link.order_id,
+  };
 }
