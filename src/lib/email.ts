@@ -1,10 +1,8 @@
 const RESEND_BASE_URL = "https://api.resend.com";
 
-// Resend requires a verified sending domain to email arbitrary recipients.
-// Until empanadasbochas.com is verified, this "from" address only allows
-// sending to the Resend account owner's own email — fine for testing, not
-// yet for real customer emails. No code changes needed once verified.
-const FROM_ADDRESS = "Empanadas Bochas <onboarding@resend.dev>";
+// empanadasbochas.com is verified with Resend (SPF + DKIM), so this can send
+// to any recipient rather than only the Resend account owner's own email.
+const FROM_ADDRESS = "Empanadas Bochas <orders@empanadasbochas.com>";
 const BUSINESS_EMAIL = "empanadasbochas@gmail.com";
 
 export async function sendEmail({
