@@ -121,8 +121,6 @@ export function formatPrice(cents: number | null): string | null {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
-const SQUARE_SANDBOX_BASE_URL = "https://connect.squareupsandbox.com";
-
 export type CheckoutLineItem = {
   name: string;
   quantity: number;
@@ -130,21 +128,20 @@ export type CheckoutLineItem = {
   note?: string;
 };
 
-// Uses the Sandbox environment on purpose — checkout hasn't been switched to
-// production yet (see docs/PRD.md). Line items are ad-hoc (name + price)
-// rather than referencing catalog objects, since the Sandbox account has an
-// entirely separate, empty catalog from the real production one.
+// Line items are ad-hoc (name + price) rather than referencing catalog
+// objects, since Square requires a location-scoped catalog reference for
+// that and this checkout intentionally stays simple/itemized-by-name.
 export async function createPaymentLink(
   lineItems: CheckoutLineItem[],
 ): Promise<{ id: string; url: string; orderId: string }> {
-  const token = process.env.SQUARE_SANDBOX_ACCESS_TOKEN;
-  const locationId = process.env.SQUARE_SANDBOX_LOCATION_ID;
+  const token = process.env.SQUARE_PRODUCTION_ACCESS_TOKEN;
+  const locationId = process.env.SQUARE_PRODUCTION_LOCATION_ID;
   if (!token || !locationId) {
-    throw new Error("Missing Square sandbox credentials");
+    throw new Error("Missing Square production credentials");
   }
 
   const res = await fetch(
-    `${SQUARE_SANDBOX_BASE_URL}/v2/online-checkout/payment-links`,
+    `${SQUARE_BASE_URL}/v2/online-checkout/payment-links`,
     {
       method: "POST",
       headers: {
