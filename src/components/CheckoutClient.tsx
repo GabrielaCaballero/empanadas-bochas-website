@@ -104,7 +104,8 @@ export default function CheckoutClient({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Something went wrong");
-      clearCart();
+      // Cart stays intact until payment is actually confirmed — cleared on
+      // /checkout/success once Square redirects back after a real charge.
       window.location.href = data.url;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");

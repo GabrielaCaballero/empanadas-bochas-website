@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { getCatalogItems } from "@/lib/square";
 import CartClient from "@/components/CartClient";
 
@@ -10,5 +11,9 @@ export default async function CartPage() {
     .filter((v) => v.priceCents != null)
     .map((v) => ({ id: v.id, name: v.name, priceCents: v.priceCents as number }));
 
-  return <CartClient sauceVariations={sauceVariations} />;
+  return (
+    <Suspense>
+      <CartClient sauceVariations={sauceVariations} />
+    </Suspense>
+  );
 }

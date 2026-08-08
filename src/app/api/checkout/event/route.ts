@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { createPaymentLink, formatPrice } from "@/lib/square";
-import { sendEmail, BUSINESS_EMAIL } from "@/lib/email";
-import { buildSquareLineItems, buildOrderSummaryHtml } from "@/lib/order-summary";
+import { createPaymentLink } from "@/lib/square";
+import { buildSquareLineItems } from "@/lib/order-summary";
 import { getUpcomingEvents } from "@/lib/events";
+import { encodeCheckoutContext } from "@/lib/checkout-context";
 import type { CartLineItem } from "@/lib/cart-context";
 
 type RequestBody = {
@@ -59,45 +59,33 @@ export async function POST(request: Request) {
     unitPriceCents: 0,
   });
 
+  // The cart is only cleared and confirmation emails are only sent once the
+  // buyer actually completes payment on Square's page and lands back on
+  // /checkout/success — not here, since a payment link being created doesn't
+  // mean anyone has paid yet. Customer/event context rides along in the
+  // redirect URL since there's no order ID to key off until after payment.
+  const ctx = encodeCheckoutContext({
+    name: customerName,
+    email: customerEmail,
+    phone: customerPhone,
+    venue: event.venue,
+    eventDate: event.date,
+    eventTime: event.time,
+    eventAddress: event.address,
+    totalCents,
+  });
+  const origin = new URL(request.url).origin;
+  const redirectUrl = `${origin}/checkout/success?ctx=${ctx}`;
+
   let paymentLink;
   try {
-    paymentLink = await createPaymentLink(lineItems);
+    paymentLink = await createPaymentLink(lineItems, redirectUrl);
   } catch (err) {
     console.error("Square payment link creation failed", err);
     return NextResponse.json(
       { error: "Could not create payment link" },
       { status: 502 },
     );
-  }
-
-  const orderSummaryHtml = buildOrderSummaryHtml({
-    items,
-    sauces,
-    freeSauceAllotment,
-    saucePriceCents,
-    totalCents,
-  });
-  const pickupHtml = `<p><strong>Pickup:</strong> ${event.venue}, ${event.date} (${event.time})<br/>${event.address}</p>`;
-  const customerContactHtml = `<p>Name: ${customerName}<br/>Email: ${customerEmail}<br/>Phone: ${customerPhone}</p>`;
-
-  try {
-    await sendEmail({
-      to: BUSINESS_EMAIL,
-      subject: `New pickup order — ${event.venue}, ${event.date}`,
-      html: `${pickupHtml}${customerContactHtml}${orderSummaryHtml}<p>Total: ${formatPrice(totalCents)}</p>`,
-    });
-  } catch (err) {
-    console.error("Business notification email failed", err);
-  }
-
-  try {
-    await sendEmail({
-      to: customerEmail,
-      subject: "Your Empanadas Bochas order",
-      html: `<p>Thanks for your order, ${customerName}!</p>${pickupHtml}${orderSummaryHtml}`,
-    });
-  } catch (err) {
-    console.error("Customer confirmation email failed", err);
   }
 
   return NextResponse.json({ url: paymentLink.url });
