@@ -5,9 +5,7 @@ import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import type { EventEntry } from "@/lib/events";
 import { formatPrice } from "@/lib/square";
-
-const BUSINESS_WHATSAPP = "19178303570";
-const PICKUP_ADDRESS = "45-21 45th Street, Long Island City, NY 11104";
+import { whatsAppUrl, PICKUP_ADDRESS } from "@/lib/business-info";
 
 type Mode = "event" | "house" | "delivery";
 
@@ -249,7 +247,7 @@ export default function CheckoutClient({
             details directly with you.
           </p>
           <a
-            href={`https://wa.me/${BUSINESS_WHATSAPP}?text=${encodeURIComponent(buildWhatsAppMessage())}`}
+            href={whatsAppUrl(buildWhatsAppMessage())}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => clearCart()}

@@ -179,3 +179,101 @@ export async function createPaymentLink(
     orderId: data.payment_link.order_id,
   };
 }
+
+export type OrderSummary = {
+  id: string;
+  createdAt: string;
+  state: string;
+  totalCents: number;
+  lineItems: { name: string; quantity: string; note?: string }[];
+};
+
+// Square automatically creates/matches a Customer record from the email
+// entered on its hosted checkout page, so order history can be looked up by
+// email without our own accounts/database — this only covers orders paid
+// through the "Pickup at an Event" flow (the only one that goes through
+// Square Checkout at time of purchase).
+async function findCustomerIdByEmail(email: string): Promise<string | null> {
+  const token = process.env.SQUARE_PRODUCTION_ACCESS_TOKEN;
+  if (!token) {
+    throw new Error("Missing SQUARE_PRODUCTION_ACCESS_TOKEN env var");
+  }
+
+  const res = await fetch(`${SQUARE_BASE_URL}/v2/customers/search`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Square-Version": SQUARE_VERSION,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      query: {
+        filter: {
+          email_address: { exact: email },
+        },
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Square customer search failed: ${res.status}`);
+  }
+
+  const data = await res.json();
+  return data.customers?.[0]?.id ?? null;
+}
+
+export async function getOrdersByEmail(email: string): Promise<OrderSummary[]> {
+  const token = process.env.SQUARE_PRODUCTION_ACCESS_TOKEN;
+  const locationId = process.env.SQUARE_PRODUCTION_LOCATION_ID;
+  if (!token || !locationId) {
+    throw new Error("Missing Square production credentials");
+  }
+
+  const customerId = await findCustomerIdByEmail(email);
+  if (!customerId) return [];
+
+  const res = await fetch(`${SQUARE_BASE_URL}/v2/orders/search`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Square-Version": SQUARE_VERSION,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      location_ids: [locationId],
+      query: {
+        filter: {
+          customer_filter: {
+            customer_ids: [customerId],
+          },
+        },
+        sort: {
+          sort_field: "CREATED_AT",
+          sort_order: "DESC",
+        },
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Square order search failed: ${res.status}`);
+  }
+
+  const data = await res.json();
+  const orders: SquareObject[] = data.orders ?? [];
+
+  return orders
+    .filter((o) => o.state !== "DRAFT" && o.state !== "CANCELED")
+    .map((o) => ({
+      id: o.id,
+      createdAt: o.created_at,
+      state: o.state,
+      totalCents: o.total_money?.amount ?? 0,
+      lineItems: (o.line_items ?? []).map((li: SquareObject) => ({
+        name: li.name,
+        quantity: li.quantity,
+        note: li.note,
+      })),
+    }));
+}
