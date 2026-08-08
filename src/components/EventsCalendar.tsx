@@ -113,7 +113,7 @@ export default function EventsCalendar({ events }: { events: EventEntry[] }) {
             <h2 className="mt-3 font-display text-2xl font-semibold text-cream sm:text-3xl">
               {theme.label} {viewYear}
             </h2>
-            <p className="mt-1 max-w-sm text-sm text-cream/80 sm:text-base">
+            <p className="mt-1 max-w-[70%] text-sm text-cream/80 sm:max-w-sm sm:text-base">
               {theme.blurb}
             </p>
           </div>
