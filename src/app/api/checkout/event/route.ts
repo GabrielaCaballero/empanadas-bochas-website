@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createPaymentLink, formatPrice } from "@/lib/square";
 import { sendEmail, BUSINESS_EMAIL } from "@/lib/email";
 import { buildSquareLineItems, buildOrderSummaryHtml } from "@/lib/order-summary";
-import { events } from "@/lib/events";
+import { getEvents } from "@/lib/events";
 import type { CartLineItem } from "@/lib/cart-context";
 
 type RequestBody = {
@@ -41,6 +41,7 @@ export async function POST(request: Request) {
     );
   }
 
+  const events = await getEvents();
   const event = events.find((e) => e.date === eventDate);
   if (!event) {
     return NextResponse.json({ error: "Unknown event" }, { status: 400 });

@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
-import { events } from "@/lib/events";
+import type { EventEntry } from "@/lib/events";
 import { formatPrice } from "@/lib/square";
 
 const BUSINESS_WHATSAPP = "19178303570";
@@ -13,8 +13,10 @@ type Mode = "event" | "house" | "delivery";
 
 export default function CheckoutClient({
   saucePriceCents,
+  events,
 }: {
   saucePriceCents: number;
+  events: EventEntry[];
 }) {
   const { items, sauces, totalCents, freeSauceAllotment, clearCart } =
     useCart();

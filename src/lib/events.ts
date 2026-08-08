@@ -6,26 +6,119 @@ export type EventEntry = {
   instagram?: string;
 };
 
-// Placeholder data — replace with real upcoming stops before launch.
-export const events: EventEntry[] = [
-  {
-    date: "2026-07-12",
-    venue: "Placeholder Brewery Co.",
-    address: "123 Sample St, Astoria, NY 11106",
-    time: "12:00 PM – 6:00 PM",
-    instagram: "https://instagram.com/",
-  },
-  {
-    date: "2026-07-18",
-    venue: "Sample Beer Garden",
-    address: "456 Example Ave, Long Island City, NY 11101",
-    time: "5:00 PM – 9:00 PM",
-  },
-  {
-    date: "2026-07-27",
-    venue: "TBD Pop-Up Spot",
-    address: "789 Draft Ln, Sunnyside, NY 11104",
-    time: "1:00 PM – 5:00 PM",
-    instagram: "https://instagram.com/",
-  },
-];
+// Published-to-web CSV export of the events Google Sheet the business owner
+// maintains directly — no login or API key needed, this is a public,
+// read-only link. Sheet columns: Date, Venue, Start Time, End Time, Address,
+// Instagram.
+const EVENTS_CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vTK5akip4yoFEptE-SmzYPyj7eTnmUDSnQadZIXXH1CvgGks7NwuJUzCriVCY9dLYMAS2Aku_zc85fC/pub?output=csv";
+
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (inQuotes) {
+      if (char === '"') {
+        if (text[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += char;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inQuotes = true;
+    } else if (char === ",") {
+      row.push(field);
+      field = "";
+    } else if (char === "\n" || char === "\r") {
+      if (char === "\r" && text[i + 1] === "\n") i++;
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = "";
+    } else {
+      field += char;
+    }
+  }
+  if (field.length > 0 || row.length > 0) {
+    row.push(field);
+    rows.push(row);
+  }
+  return rows.filter((r) => r.some((cell) => cell.trim() !== ""));
+}
+
+function toIsoDate(dateStr: string): string | null {
+  // "7/4/2026" -> "2026-07-04"
+  const match = dateStr.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!match) return null;
+  const [, month, day, year] = match;
+  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+}
+
+function formatTime(time: string): string {
+  // "1:00:00 PM" -> "1:00 PM"; leaves already-short times untouched
+  const match = time.trim().match(/^(\d{1,2}):(\d{2}):\d{2}\s*(AM|PM)$/i);
+  if (!match) return time.trim();
+  const [, hour, minute, period] = match;
+  return `${hour}:${minute} ${period.toUpperCase()}`;
+}
+
+export async function getEvents(): Promise<EventEntry[]> {
+  try {
+    const res = await fetch(EVENTS_CSV_URL, { next: { revalidate: 300 } });
+    if (!res.ok) return [];
+
+    const text = await res.text();
+    const rows = parseCsv(text);
+    if (rows.length < 2) return [];
+
+    const [header, ...dataRows] = rows;
+    const colIndex = (name: string) =>
+      header.findIndex((h) => h.trim().toLowerCase() === name.toLowerCase());
+
+    const dateCol = colIndex("date");
+    const venueCol = colIndex("venue");
+    const startCol = colIndex("start time");
+    const endCol = colIndex("end time");
+    const addressCol = colIndex("address");
+    const instagramCol = colIndex("instagram");
+
+    const events: EventEntry[] = [];
+    for (const row of dataRows) {
+      const rawDate = row[dateCol]?.trim();
+      const venue = row[venueCol]?.trim();
+      if (!rawDate || !venue) continue;
+
+      const isoDate = toIsoDate(rawDate);
+      if (!isoDate) continue;
+
+      const start = row[startCol] ? formatTime(row[startCol]) : "";
+      const end = row[endCol] ? formatTime(row[endCol]) : "";
+      const time = start && end ? `${start} – ${end}` : start || end || "";
+
+      events.push({
+        date: isoDate,
+        venue,
+        address: addressCol >= 0 ? (row[addressCol]?.trim() ?? "") : "",
+        time,
+        instagram:
+          instagramCol >= 0 ? row[instagramCol]?.trim() || undefined : undefined,
+      });
+    }
+
+    return events.sort((a, b) => a.date.localeCompare(b.date));
+  } catch (err) {
+    console.error("Failed to fetch events sheet", err);
+    return [];
+  }
+}
