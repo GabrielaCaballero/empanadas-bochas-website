@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCart } from "@/lib/cart-context";
 import { formatPrice } from "@/lib/square";
+import { whatsAppUrl } from "@/lib/business-info";
 
 type SauceVariation = {
   id: string;
@@ -32,12 +34,36 @@ export default function CartClient({
   const sauceCostCents = paidSauces * saucePriceCents;
   const grandTotalCents = totalCents + sauceCostCents;
 
+  const searchParams = useSearchParams();
+  const orderError = searchParams.get("error") === "order";
+  const errorBanner = orderError && (
+    <div className="mb-8 rounded-2xl border border-red-200 bg-red-50 p-5">
+      <p className="font-semibold text-red-700">
+        Something went wrong finishing your order.
+      </p>
+      <p className="mt-1 text-sm text-red-700/80">
+        Your cart is still here, so you can try checking out again. If this
+        keeps happening, message us on WhatsApp and we&rsquo;ll sort it out
+        directly.
+      </p>
+      <a
+        href={whatsAppUrl("Hi! I ran into an error trying to check out on the website.")}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-3 inline-block rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700"
+      >
+        Message us on WhatsApp
+      </a>
+    </div>
+  );
+
   if (items.length === 0) {
     return (
       <section className="mx-auto w-full max-w-6xl flex-1 px-6 py-16">
         <h1 className="font-display text-4xl font-semibold text-maroon">
           Your cart
         </h1>
+        {errorBanner}
         <p className="mt-3 max-w-xl text-maroon/70">Your cart is empty.</p>
         <Link
           href="/shop"
@@ -54,6 +80,7 @@ export default function CartClient({
       <h1 className="font-display text-4xl font-semibold text-maroon">
         Your cart
       </h1>
+      {errorBanner && <div className="mt-6">{errorBanner}</div>}
       <p className="mt-2 text-sm text-maroon/60">
         Want an odd number of empanadas? Add a combo and a few individual
         empanadas separately — they all add up in one cart.

@@ -62,4 +62,12 @@ export const flavorInfo: FlavorInfo[] = [
     ingredients:
       "Chicken, buffalo sauce, cream cheese, empanada dough (wheat flour, butter).",
   },
+  {
+    name: "Cheeseburger",
+    image: null,
+    description:
+      "Juicy seasoned beef, crispy bacon, and melted cheddar cheese, all wrapped in our handmade dough and baked to perfection.",
+    ingredients:
+      "Beef, bacon, cheddar cheese, empanada dough (wheat flour, butter).",
+  },
 ];

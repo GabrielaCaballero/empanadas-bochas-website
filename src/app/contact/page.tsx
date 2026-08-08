@@ -129,7 +129,7 @@ export default function ContactPage() {
               <p className="text-sm font-medium text-maroon/60">
                 {detail.label}
               </p>
-              <p className="mt-0.5 font-semibold text-maroon break-words underline decoration-maroon/0 group-hover:decoration-maroon/30">
+              <p className="mt-0.5 text-sm font-semibold text-maroon break-words underline decoration-maroon/0 group-hover:decoration-maroon/30">
                 {detail.value}
               </p>
             </div>

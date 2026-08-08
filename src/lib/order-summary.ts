@@ -1,5 +1,5 @@
 import type { CartLineItem } from "./cart-context";
-import { formatPrice, type CheckoutLineItem } from "./square";
+import { formatPrice, type CheckoutLineItem, type OrderSummary } from "./square";
 
 function sauceBreakdown(
   sauces: Record<string, number>,
@@ -102,5 +102,25 @@ export function buildOrderSummaryHtml({
     <ul>${itemRows}</ul>
     ${sauceRows ? `<h3>Sauces</h3><ul>${sauceRows}</ul>` : ""}
     <p><strong>Total: ${formatPrice(totalCents)}</strong></p>
+  `;
+}
+
+// Builds the same kind of summary as buildOrderSummaryHtml, but sourced from
+// a paid Square order (post-checkout) rather than the client's cart state —
+// used once payment is confirmed, so it reflects what was actually charged.
+export function buildSquareOrderSummaryHtml(order: OrderSummary): string {
+  const itemRows = order.lineItems
+    .map((item) => {
+      const note = item.note
+        ? `<br/><span style="color:#666;font-size:13px">${item.note}</span>`
+        : "";
+      return `<li>${item.quantity}x ${item.name}${note}</li>`;
+    })
+    .join("");
+
+  return `
+    <h2>Order Summary</h2>
+    <ul>${itemRows}</ul>
+    <p><strong>Total: ${formatPrice(order.totalCents)}</strong></p>
   `;
 }

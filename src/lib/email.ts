@@ -9,10 +9,14 @@ export async function sendEmail({
   to,
   subject,
   html,
+  idempotencyKey,
 }: {
   to: string;
   subject: string;
   html: string;
+  // Lets a caller safely re-trigger the same send (e.g. a customer refreshing
+  // an order-confirmation page) without Resend actually emailing twice.
+  idempotencyKey?: string;
 }) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
@@ -24,6 +28,7 @@ export async function sendEmail({
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
+      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
     },
     body: JSON.stringify({
       from: FROM_ADDRESS,

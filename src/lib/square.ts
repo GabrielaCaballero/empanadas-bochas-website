@@ -133,6 +133,7 @@ export type CheckoutLineItem = {
 // that and this checkout intentionally stays simple/itemized-by-name.
 export async function createPaymentLink(
   lineItems: CheckoutLineItem[],
+  redirectUrl?: string,
 ): Promise<{ id: string; url: string; orderId: string }> {
   const token = process.env.SQUARE_PRODUCTION_ACCESS_TOKEN;
   const locationId = process.env.SQUARE_PRODUCTION_LOCATION_ID;
@@ -163,6 +164,9 @@ export async function createPaymentLink(
             },
           })),
         },
+        checkout_options: redirectUrl
+          ? { redirect_url: redirectUrl }
+          : undefined,
       }),
     },
   );
@@ -187,6 +191,43 @@ export type OrderSummary = {
   totalCents: number;
   lineItems: { name: string; quantity: string; note?: string }[];
 };
+
+function mapOrderSummary(o: SquareObject): OrderSummary {
+  return {
+    id: o.id,
+    createdAt: o.created_at,
+    state: o.state,
+    totalCents: o.total_money?.amount ?? 0,
+    lineItems: (o.line_items ?? []).map((li: SquareObject) => ({
+      name: li.name,
+      quantity: li.quantity,
+      note: li.note,
+    })),
+  };
+}
+
+// A DRAFT order has been created but never paid (e.g. the buyer abandoned
+// Square's hosted checkout); CANCELED is self-explanatory. Anything else
+// means a tender was actually applied.
+function isPaidOrderState(state: string) {
+  return state !== "DRAFT" && state !== "CANCELED";
+}
+
+// Finds the order a just-completed checkout redirect refers to: there's no
+// order ID to match on directly (see /checkout/success), so the best signal
+// is a paid order for this customer with a matching total, created recently.
+export function findRecentMatchingOrder(
+  orders: OrderSummary[],
+  totalCents: number,
+  withinMs: number,
+): OrderSummary | undefined {
+  const now = Date.now();
+  return orders.find(
+    (o) =>
+      o.totalCents === totalCents &&
+      now - new Date(o.createdAt).getTime() < withinMs,
+  );
+}
 
 // Square automatically creates/matches a Customer record from the email
 // entered on its hosted checkout page, so order history can be looked up by
@@ -264,16 +305,6 @@ export async function getOrdersByEmail(email: string): Promise<OrderSummary[]> {
   const orders: SquareObject[] = data.orders ?? [];
 
   return orders
-    .filter((o) => o.state !== "DRAFT" && o.state !== "CANCELED")
-    .map((o) => ({
-      id: o.id,
-      createdAt: o.created_at,
-      state: o.state,
-      totalCents: o.total_money?.amount ?? 0,
-      lineItems: (o.line_items ?? []).map((li: SquareObject) => ({
-        name: li.name,
-        quantity: li.quantity,
-        note: li.note,
-      })),
-    }));
+    .filter((o) => isPaidOrderState(o.state))
+    .map(mapOrderSummary);
 }
