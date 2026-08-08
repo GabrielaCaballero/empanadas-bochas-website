@@ -73,7 +73,7 @@ function formatTime(time: string): string {
   return `${hour}:${minute} ${period.toUpperCase()}`;
 }
 
-function todayIso(): string {
+export function todayIso(): string {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
@@ -124,12 +124,15 @@ export async function getEvents(): Promise<EventEntry[]> {
       });
     }
 
-    const today = todayIso();
-    return events
-      .filter((e) => e.date >= today)
-      .sort((a, b) => a.date.localeCompare(b.date));
+    return events.sort((a, b) => a.date.localeCompare(b.date));
   } catch (err) {
     console.error("Failed to fetch events sheet", err);
     return [];
   }
+}
+
+export async function getUpcomingEvents(): Promise<EventEntry[]> {
+  const today = todayIso();
+  const events = await getEvents();
+  return events.filter((e) => e.date >= today);
 }

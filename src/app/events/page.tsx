@@ -12,8 +12,8 @@ export default async function EventsPage() {
         Upcoming Events
       </h1>
       <p className="mt-3 max-w-xl text-maroon/70">
-        Find us pouring at breweries and pop-ups around NYC. Tap a
-        highlighted date to see details.
+        Find us pouring at breweries and pop-ups around NYC. Browse any month
+        of the year and tap a highlighted date to see details.
       </p>
 
       <EventsCalendar events={events} />
