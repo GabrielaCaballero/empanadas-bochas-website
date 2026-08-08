@@ -73,6 +73,14 @@ function formatTime(time: string): string {
   return `${hour}:${minute} ${period.toUpperCase()}`;
 }
 
+function todayIso(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export async function getEvents(): Promise<EventEntry[]> {
   try {
     const res = await fetch(EVENTS_CSV_URL, { next: { revalidate: 300 } });
@@ -116,7 +124,10 @@ export async function getEvents(): Promise<EventEntry[]> {
       });
     }
 
-    return events.sort((a, b) => a.date.localeCompare(b.date));
+    const today = todayIso();
+    return events
+      .filter((e) => e.date >= today)
+      .sort((a, b) => a.date.localeCompare(b.date));
   } catch (err) {
     console.error("Failed to fetch events sheet", err);
     return [];
