@@ -25,6 +25,18 @@ type SuggestedProduct = {
   priceCents: number | null;
 };
 
+function RemoveIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden="true">
+      <path
+        fillRule="evenodd"
+        d="M4.293 4.293a1 1 0 0 1 1.414 0L10 8.586l4.293-4.293a1 1 0 1 1 1.414 1.414L11.414 10l4.293 4.293a1 1 0 0 1-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 0 1-1.414-1.414L8.586 10 4.293 5.707a1 1 0 0 1 0-1.414Z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
 function Thumbnail({
   product,
   className,
@@ -200,19 +212,21 @@ export default function CartClient({
                       </button>
                     </div>
                   )}
+                </div>
 
+                <div className="flex shrink-0 flex-col items-end gap-2">
+                  <p className="font-medium text-terracotta">
+                    {formatPrice(item.unitPriceCents * item.quantity)}
+                  </p>
                   <button
                     type="button"
                     onClick={() => removeItem(item.id)}
-                    className="mt-2 text-sm text-maroon/50 hover:text-maroon"
+                    aria-label={`Remove ${item.name} from cart`}
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-maroon/40 transition-colors hover:bg-red-50 hover:text-red-600"
                   >
-                    Remove
+                    <RemoveIcon />
                   </button>
                 </div>
-
-                <p className="shrink-0 font-medium text-terracotta">
-                  {formatPrice(item.unitPriceCents * item.quantity)}
-                </p>
               </li>
             ))}
           </ul>
