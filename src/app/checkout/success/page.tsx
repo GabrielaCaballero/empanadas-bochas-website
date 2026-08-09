@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { getOrdersByEmail, findRecentMatchingOrder } from "@/lib/square";
 import { decodeCheckoutContext } from "@/lib/checkout-context";
 import { sendEmail, BUSINESS_EMAIL } from "@/lib/email";
 import { buildSquareOrderSummaryHtml } from "@/lib/order-summary";
+import { signOrderToken } from "@/lib/order-token";
 import CheckoutSuccessClient from "@/components/CheckoutSuccessClient";
 
 const MATCH_WINDOW_MS = 30 * 60 * 1000;
@@ -27,8 +29,14 @@ export default async function CheckoutSuccessPage({
 
   if (!order) redirect("/cart?error=order");
 
+  const headersList = await headers();
+  const host = headersList.get("host");
+  const protocol = host?.includes("localhost") ? "http" : "https";
+  const orderLink = `${protocol}://${host}/orders/${signOrderToken(order.id)}`;
+
   const pickupHtml = `<p><strong>Pickup:</strong> ${ctx.venue}, ${ctx.eventDate} (${ctx.eventTime})<br/>${ctx.eventAddress}</p>`;
   const orderSummaryHtml = buildSquareOrderSummaryHtml(order);
+  const orderLinkHtml = `<p>View this order anytime: <a href="${orderLink}">${orderLink}</a></p>`;
 
   try {
     await sendEmail({
@@ -45,7 +53,7 @@ export default async function CheckoutSuccessPage({
     await sendEmail({
       to: ctx.email,
       subject: "Your Empanadas Bochas order",
-      html: `<p>Thanks for your order, ${ctx.name}!</p>${pickupHtml}${orderSummaryHtml}`,
+      html: `<p>Thanks for your order, ${ctx.name}!</p>${pickupHtml}${orderSummaryHtml}${orderLinkHtml}`,
       idempotencyKey: `customer-${order.id}`,
     });
   } catch (err) {
@@ -62,6 +70,7 @@ export default async function CheckoutSuccessPage({
       eventAddress={ctx.eventAddress}
       lineItems={order.lineItems}
       totalCents={order.totalCents}
+      orderLink={orderLink}
     />
   );
 }

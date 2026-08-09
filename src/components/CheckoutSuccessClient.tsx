@@ -22,6 +22,7 @@ export default function CheckoutSuccessClient({
   eventAddress,
   lineItems,
   totalCents,
+  orderLink,
 }: {
   customerName: string;
   customerEmail: string;
@@ -31,6 +32,7 @@ export default function CheckoutSuccessClient({
   eventAddress: string;
   lineItems: { name: string; quantity: string; note?: string }[];
   totalCents: number;
+  orderLink: string;
 }) {
   const { clearCart } = useCart();
 
@@ -76,13 +78,18 @@ export default function CheckoutSuccessClient({
         </div>
       </div>
 
-      <div className="mt-8 flex flex-wrap gap-3">
-        <Link
-          href="/orders"
+      <p className="mt-4 text-sm text-maroon/60">
+        We&rsquo;ve also included a link to this order in your confirmation
+        email, so you can find it again anytime.
+      </p>
+
+      <div className="mt-6 flex flex-wrap gap-3">
+        <a
+          href={orderLink}
           className="rounded-full bg-terracotta px-6 py-3 font-semibold text-background transition-colors hover:bg-rust"
         >
-          View My Orders
-        </Link>
+          View This Order
+        </a>
         <Link
           href="/shop"
           className="rounded-full border border-maroon/20 px-6 py-3 font-semibold text-maroon transition-colors hover:bg-maroon/5"

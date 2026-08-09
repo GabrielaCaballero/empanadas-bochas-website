@@ -213,6 +213,31 @@ function isPaidOrderState(state: string) {
   return state !== "DRAFT" && state !== "CANCELED";
 }
 
+export async function getOrder(orderId: string): Promise<OrderSummary | null> {
+  const token = process.env.SQUARE_PRODUCTION_ACCESS_TOKEN;
+  if (!token) {
+    throw new Error("Missing SQUARE_PRODUCTION_ACCESS_TOKEN env var");
+  }
+
+  const res = await fetch(`${SQUARE_BASE_URL}/v2/orders/${orderId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Square-Version": SQUARE_VERSION,
+    },
+  });
+
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    throw new Error(`Square order lookup failed: ${res.status}`);
+  }
+
+  const data = await res.json();
+  if (!data.order) return null;
+
+  const summary = mapOrderSummary(data.order);
+  return isPaidOrderState(summary.state) ? summary : null;
+}
+
 // Finds the order a just-completed checkout redirect refers to: there's no
 // order ID to match on directly (see /checkout/success), so the best signal
 // is a paid order for this customer with a matching total, created recently.
