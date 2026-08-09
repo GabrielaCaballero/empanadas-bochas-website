@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import type { EventEntry } from "@/lib/events";
@@ -33,6 +33,21 @@ export default function CheckoutClient({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deliverySubmitted, setDeliverySubmitted] = useState(false);
+
+  useEffect(() => {
+    // If the browser restores this page from the back-forward cache (e.g.
+    // the customer hits "back" from Square without paying), it resurrects
+    // whatever state was frozen when we navigated away — including
+    // "submitting", which would otherwise leave the button stuck reading
+    // "Redirecting to payment…" forever even though nothing is happening.
+    function handlePageShow(event: PageTransitionEvent) {
+      if (event.persisted) {
+        setSubmitting(false);
+      }
+    }
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
 
   const totalSaucesSelected = Object.values(sauces).reduce((a, b) => a + b, 0);
   const paidSauces = Math.max(0, totalSaucesSelected - freeSauceAllotment);
