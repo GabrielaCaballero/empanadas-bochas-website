@@ -194,22 +194,27 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
       </button>
 
       {justAdded && (
-        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl bg-cream px-4 py-3 text-sm">
-          <span className="text-maroon">
-            ✓ Added {lastAddedCount} to cart
+        <div className="mt-4 flex items-center justify-between gap-4 rounded-2xl bg-cream px-5 py-4">
+          <span className="flex items-center gap-2 text-sm font-medium text-maroon">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-terracotta text-background">
+              ✓
+            </span>
+            Added {lastAddedCount} to cart
           </span>
-          <Link
-            href="/cart"
-            className="font-semibold text-terracotta hover:text-rust"
-          >
-            View Cart
-          </Link>
-          <Link
-            href="/shop"
-            className="font-semibold text-maroon hover:text-terracotta"
-          >
-            Continue Shopping
-          </Link>
+          <div className="flex shrink-0 items-center gap-4">
+            <Link
+              href="/shop"
+              className="text-sm font-medium text-maroon/60 hover:text-maroon"
+            >
+              Keep shopping
+            </Link>
+            <Link
+              href="/cart"
+              className="rounded-full bg-terracotta px-4 py-2 text-sm font-semibold text-background transition-colors hover:bg-rust"
+            >
+              View Cart
+            </Link>
+          </div>
         </div>
       )}
     </div>
