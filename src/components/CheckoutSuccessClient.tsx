@@ -47,8 +47,8 @@ export default function CheckoutSuccessClient({
         Order confirmed!
       </h1>
       <p className="mt-3 text-maroon/70">
-        Thanks, {customerName.split(" ")[0]} — we&rsquo;ve sent a confirmation
-        to <strong>{customerEmail}</strong>.
+        Thanks, {customerName.split(" ")[0]} — we&rsquo;ve emailed your
+        receipt to <strong>{customerEmail}</strong>.
       </p>
 
       <div className="mt-8 rounded-3xl bg-cream p-6">
@@ -78,14 +78,8 @@ export default function CheckoutSuccessClient({
 
       <div className="mt-8 flex flex-wrap gap-3">
         <Link
-          href="/orders"
-          className="rounded-full bg-terracotta px-6 py-3 font-semibold text-background transition-colors hover:bg-rust"
-        >
-          View My Orders
-        </Link>
-        <Link
           href="/shop"
-          className="rounded-full border border-maroon/20 px-6 py-3 font-semibold text-maroon transition-colors hover:bg-maroon/5"
+          className="rounded-full bg-terracotta px-6 py-3 font-semibold text-background transition-colors hover:bg-rust"
         >
           Continue Shopping
         </Link>

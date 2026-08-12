@@ -89,6 +89,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   function clearCart() {
     setItems([]);
     setSauces({});
+    // Also written directly (not just via state) because this can run in a
+    // child's mount effect (see CheckoutSuccessClient) that fires before
+    // CartProvider's own localStorage-hydration effect above — without this,
+    // that later hydration read would reload the pre-clear cart from storage
+    // and clobber the clear.
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ items: [], sauces: {} }));
   }
 
   function setSauceCount(name: string, count: number) {

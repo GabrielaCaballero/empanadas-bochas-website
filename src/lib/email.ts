@@ -10,6 +10,7 @@ export async function sendEmail({
   subject,
   html,
   idempotencyKey,
+  attachments,
 }: {
   to: string;
   subject: string;
@@ -17,6 +18,7 @@ export async function sendEmail({
   // Lets a caller safely re-trigger the same send (e.g. a customer refreshing
   // an order-confirmation page) without Resend actually emailing twice.
   idempotencyKey?: string;
+  attachments?: { filename: string; content: Uint8Array }[];
 }) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
@@ -35,6 +37,10 @@ export async function sendEmail({
       to,
       subject,
       html,
+      attachments: attachments?.map((a) => ({
+        filename: a.filename,
+        content: Buffer.from(a.content).toString("base64"),
+      })),
     }),
   });
 

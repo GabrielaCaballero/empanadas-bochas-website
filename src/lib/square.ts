@@ -1,5 +1,32 @@
 const SQUARE_BASE_URL = "https://connect.squareup.com";
+const SQUARE_SANDBOX_BASE_URL = "https://connect.squareupsandbox.com";
 const SQUARE_VERSION = "2025-01-23";
+
+// Controls checkout + order-lookup only (SQUARE_CHECKOUT_ENV=sandbox) — the
+// catalog always reads from production regardless, since the menu/prices
+// shown to visitors should always be real. Sandbox and production are
+// separate Square accounts, so payment creation and order lookups must use
+// the same one or a just-completed sandbox order will never be found.
+function checkoutCredentials() {
+  const useSandbox = process.env.SQUARE_CHECKOUT_ENV === "sandbox";
+  const token = useSandbox
+    ? process.env.SQUARE_SANDBOX_ACCESS_TOKEN
+    : process.env.SQUARE_PRODUCTION_ACCESS_TOKEN;
+  const locationId = useSandbox
+    ? process.env.SQUARE_SANDBOX_LOCATION_ID
+    : process.env.SQUARE_PRODUCTION_LOCATION_ID;
+  const baseUrl = useSandbox ? SQUARE_SANDBOX_BASE_URL : SQUARE_BASE_URL;
+
+  if (!token || !locationId) {
+    throw new Error(
+      useSandbox
+        ? "Missing Square sandbox credentials"
+        : "Missing Square production credentials",
+    );
+  }
+
+  return { token, locationId, baseUrl };
+}
 
 export type CatalogVariation = {
   id: string;
@@ -134,15 +161,12 @@ export type CheckoutLineItem = {
 export async function createPaymentLink(
   lineItems: CheckoutLineItem[],
   redirectUrl?: string,
+  buyerEmail?: string,
 ): Promise<{ id: string; url: string; orderId: string }> {
-  const token = process.env.SQUARE_PRODUCTION_ACCESS_TOKEN;
-  const locationId = process.env.SQUARE_PRODUCTION_LOCATION_ID;
-  if (!token || !locationId) {
-    throw new Error("Missing Square production credentials");
-  }
+  const { token, locationId, baseUrl } = checkoutCredentials();
 
   const res = await fetch(
-    `${SQUARE_BASE_URL}/v2/online-checkout/payment-links`,
+    `${baseUrl}/v2/online-checkout/payment-links`,
     {
       method: "POST",
       headers: {
@@ -166,6 +190,11 @@ export async function createPaymentLink(
         },
         checkout_options: redirectUrl
           ? { redirect_url: redirectUrl }
+          : undefined,
+        // Pre-fills the buyer's email on Square's hosted checkout page so
+        // they don't have to retype what they already gave us.
+        pre_populated_data: buyerEmail
+          ? { buyer_email: buyerEmail }
           : undefined,
       }),
     },
@@ -215,7 +244,12 @@ function isPaidOrderState(state: string) {
 
 // Finds the order a just-completed checkout redirect refers to: there's no
 // order ID to match on directly (see /checkout/success), so the best signal
-// is a paid order for this customer with a matching total, created recently.
+// is a recent paid order with a matching total. This deliberately doesn't
+// filter by customer/email — Square's hosted checkout doesn't reliably
+// attach a customer record to every completed order (confirmed via sandbox
+// testing, where the "Test Payment" simulator never does), so matching on
+// total+recency against ALL recent orders at this location is the more
+// robust signal for a low-volume business like this one.
 export function findRecentMatchingOrder(
   orders: OrderSummary[],
   totalCents: number,
@@ -229,52 +263,13 @@ export function findRecentMatchingOrder(
   );
 }
 
-// Square automatically creates/matches a Customer record from the email
-// entered on its hosted checkout page, so order history can be looked up by
-// email without our own accounts/database — this only covers orders paid
-// through the "Pickup at an Event" flow (the only one that goes through
-// Square Checkout at time of purchase).
-async function findCustomerIdByEmail(email: string): Promise<string | null> {
-  const token = process.env.SQUARE_PRODUCTION_ACCESS_TOKEN;
-  if (!token) {
-    throw new Error("Missing SQUARE_PRODUCTION_ACCESS_TOKEN env var");
-  }
+// Recent orders at this location, regardless of customer — used to find the
+// order a just-completed checkout redirect refers to (see
+// findRecentMatchingOrder above).
+export async function getRecentOrders(withinMs: number): Promise<OrderSummary[]> {
+  const { token, locationId, baseUrl } = checkoutCredentials();
 
-  const res = await fetch(`${SQUARE_BASE_URL}/v2/customers/search`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Square-Version": SQUARE_VERSION,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      query: {
-        filter: {
-          email_address: { exact: email },
-        },
-      },
-    }),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Square customer search failed: ${res.status}`);
-  }
-
-  const data = await res.json();
-  return data.customers?.[0]?.id ?? null;
-}
-
-export async function getOrdersByEmail(email: string): Promise<OrderSummary[]> {
-  const token = process.env.SQUARE_PRODUCTION_ACCESS_TOKEN;
-  const locationId = process.env.SQUARE_PRODUCTION_LOCATION_ID;
-  if (!token || !locationId) {
-    throw new Error("Missing Square production credentials");
-  }
-
-  const customerId = await findCustomerIdByEmail(email);
-  if (!customerId) return [];
-
-  const res = await fetch(`${SQUARE_BASE_URL}/v2/orders/search`, {
+  const res = await fetch(`${baseUrl}/v2/orders/search`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -285,8 +280,10 @@ export async function getOrdersByEmail(email: string): Promise<OrderSummary[]> {
       location_ids: [locationId],
       query: {
         filter: {
-          customer_filter: {
-            customer_ids: [customerId],
+          date_time_filter: {
+            created_at: {
+              start_at: new Date(Date.now() - withinMs).toISOString(),
+            },
           },
         },
         sort: {
