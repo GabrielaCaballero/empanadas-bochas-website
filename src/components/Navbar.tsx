@@ -14,8 +14,19 @@ const links = [
 
 function CartIcon() {
   return (
-    <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0" aria-hidden="true">
-      <path d="M6 2a1 1 0 0 0-.96.73L4.32 6H2a1 1 0 1 0 0 2h.42l1.13 7.24A2 2 0 0 0 5.53 17h8.94a2 2 0 0 0 1.98-1.76L17.58 8H18a1 1 0 1 0 0-2h-2.32l-.72-3.27A1 1 0 0 0 14 2H6Zm7.93 4H6.07l.5-2h6.86l.5 2ZM8 10a1 1 0 0 1 2 0v3a1 1 0 1 1-2 0v-3Zm5-1a1 1 0 0 0-1 1v3a1 1 0 1 0 2 0v-3a1 1 0 0 0-1-1Z" />
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-4 w-4 shrink-0"
+      aria-hidden="true"
+    >
+      <circle cx="9" cy="21" r="1" />
+      <circle cx="20" cy="21" r="1" />
+      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
     </svg>
   );
 }
