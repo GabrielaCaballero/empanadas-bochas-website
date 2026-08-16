@@ -83,9 +83,11 @@ export default function CheckoutSuccessClient({
             </p>
             <p className="mt-1 text-sm text-maroon/70">
               Delivery fee:{" "}
-              {fulfillment.feeCents === 0
-                ? "Free"
-                : formatPrice(fulfillment.feeCents)}
+              {fulfillment.feeCents === 0 ? (
+                <span className="font-bold text-green-600">Free</span>
+              ) : (
+                formatPrice(fulfillment.feeCents)
+              )}
             </p>
           </>
         )}

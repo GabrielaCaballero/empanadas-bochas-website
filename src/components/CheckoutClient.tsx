@@ -129,6 +129,9 @@ export default function CheckoutClient({
     if (zipCode.length !== 5) return undefined;
     return deliveryZones.find((z) => z.postalCodes.includes(zipCode));
   }, [zipCode, deliveryZones]);
+  const matchedZoneFeeCents = matchedZone
+    ? computeDeliveryFeeCents(matchedZone, grandTotalCents)
+    : null;
 
   const selection = useMemo(() => {
     if (topChoice === "pickup" && pickupChoice === "kitchen") {
@@ -304,13 +307,11 @@ export default function CheckoutClient({
                 <p className="mt-2 text-sm text-maroon/70">
                   {matchedZone.neighborhood}, {matchedZone.borough} — delivery
                   is{" "}
-                  {(() => {
-                    const feeCents = computeDeliveryFeeCents(
-                      matchedZone,
-                      grandTotalCents,
-                    );
-                    return feeCents === 0 ? "Free" : formatPrice(feeCents);
-                  })()}
+                  {matchedZoneFeeCents === 0 ? (
+                    <span className="font-bold text-green-600">Free</span>
+                  ) : (
+                    formatPrice(matchedZoneFeeCents)
+                  )}
                 </p>
               ) : (
                 <div className="mt-2 flex flex-col gap-2">
@@ -366,7 +367,13 @@ export default function CheckoutClient({
         {selection?.kind === "delivery" && (
           <div className="mt-1 flex items-center justify-between text-sm text-maroon/70">
             <span>Delivery</span>
-            <span>{deliveryFeeCents === 0 ? "Free" : formatPrice(deliveryFeeCents)}</span>
+            <span>
+              {deliveryFeeCents === 0 ? (
+                <span className="font-bold text-green-600">Free</span>
+              ) : (
+                formatPrice(deliveryFeeCents)
+              )}
+            </span>
           </div>
         )}
       </div>
