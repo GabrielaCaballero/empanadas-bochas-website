@@ -3,9 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCart } from "@/lib/cart-context";
+import { useCart, type CartLineItem } from "@/lib/cart-context";
 import { formatPrice } from "@/lib/square";
 import { whatsAppUrl } from "@/lib/business-info";
+import { flavorInfo } from "@/lib/flavor-info";
 
 type SauceVariation = {
   id: string;
@@ -35,6 +36,31 @@ function RemoveIcon() {
       />
     </svg>
   );
+}
+
+// A single-flavor line item (e.g. one "1 Empanada") reads oddly showing the
+// product's generic catalog photo (whichever flavor happens to be first in
+// Square) regardless of which flavor was actually picked — so for that case,
+// show that flavor's own photo instead. A multi-flavor item (e.g. a box with
+// several fillings) has no single representative flavor, so it keeps the
+// product's photo.
+function resolveThumbnail(
+  item: CartLineItem,
+  productsById: Record<string, Product>,
+): Product | undefined {
+  if (item.flavors) {
+    const selectedFlavors = Object.entries(item.flavors).filter(
+      ([, count]) => count > 0,
+    );
+    if (selectedFlavors.length === 1) {
+      const [flavorName] = selectedFlavors[0];
+      const info = flavorInfo.find((f) => f.name === flavorName);
+      if (info?.image) {
+        return { name: flavorName, imageUrl: info.image };
+      }
+    }
+  }
+  return productsById[item.itemId];
 }
 
 function Thumbnail({
@@ -177,7 +203,7 @@ export default function CartClient({
                 className="flex items-center gap-4 rounded-3xl bg-cream p-4 sm:p-5"
               >
                 <Thumbnail
-                  product={productsById[item.itemId]}
+                  product={resolveThumbnail(item, productsById)}
                   className="h-20 w-20 sm:h-24 sm:w-24"
                 />
 
