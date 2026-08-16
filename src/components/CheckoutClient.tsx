@@ -6,36 +6,65 @@ import { useCart } from "@/lib/cart-context";
 import type { EventEntry } from "@/lib/events";
 import {
   computeDeliveryFeeCents,
+  FREE_DELIVERY_THRESHOLD_CENTS,
   type DeliveryZone,
 } from "@/lib/delivery-pricing";
 import { formatPrice } from "@/lib/square";
 import { whatsAppUrl, PICKUP_ADDRESS } from "@/lib/business-info";
 
-const EVENT_KEY_PREFIX = "event:";
-const DELIVERY_KEY_PREFIX = "delivery:";
-const KITCHEN_KEY = "kitchen";
-
-// Events are identified by their position in the list, not by date — two
-// events can legitimately share a date (different venues), so date alone
-// isn't a unique key.
-function eventKey(index: number) {
-  return `${EVENT_KEY_PREFIX}${index}`;
-}
-function deliveryKey(zoneId: string) {
-  return `${DELIVERY_KEY_PREFIX}${zoneId}`;
-}
+type TopChoice = "pickup" | "delivery";
+type PickupChoice = "event" | "kitchen";
 
 function formatEventOptionLabel(event: EventEntry) {
   const date = new Date(`${event.date}T00:00:00`).toLocaleDateString(
     "en-US",
     { weekday: "short", month: "short", day: "numeric" },
   );
-  return `${event.venue} — ${date}, ${event.time} — Free`;
+  return `${event.venue} — ${date}, ${event.time}`;
 }
 
-function formatDeliveryOptionLabel(zone: DeliveryZone, feeCents: number) {
-  const feeLabel = feeCents === 0 ? "Free" : formatPrice(feeCents);
-  return `${zone.neighborhood} — ${feeLabel}`;
+function boroughEstimateLabel(zones: DeliveryZone[], cartSubtotalCents: number) {
+  if (cartSubtotalCents >= FREE_DELIVERY_THRESHOLD_CENTS) return "Free";
+  const minCents = Math.min(...zones.map((z) => z.priceCents));
+  return minCents === 0 ? "From Free" : `From ${formatPrice(minCents)}`;
+}
+
+function PillGroup<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: T; label: string; sublabel?: string }[];
+  value: T | null;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          className={`rounded-full border px-5 py-2 text-left text-sm font-semibold transition-colors ${
+            value === opt.value
+              ? "border-terracotta bg-terracotta text-background"
+              : "border-maroon/30 text-maroon hover:bg-maroon/5"
+          }`}
+        >
+          {opt.label}
+          {opt.sublabel && (
+            <span
+              className={
+                value === opt.value ? "ml-1.5 opacity-80" : "ml-1.5 text-maroon/50"
+              }
+            >
+              — {opt.sublabel}
+            </span>
+          )}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 export default function CheckoutClient({
@@ -50,9 +79,14 @@ export default function CheckoutClient({
   const { items, sauces, totalCents, freeSauceAllotment, clearCart } =
     useCart();
 
-  const [selectedKey, setSelectedKey] = useState(
-    events[0] ? eventKey(0) : KITCHEN_KEY,
+  const [topChoice, setTopChoice] = useState<TopChoice | null>(null);
+  const [pickupChoice, setPickupChoice] = useState<PickupChoice | null>(null);
+  const [selectedEventIndex, setSelectedEventIndex] = useState<number | null>(
+    null,
   );
+  const [selectedBorough, setSelectedBorough] = useState<string | null>(null);
+  const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -76,32 +110,29 @@ export default function CheckoutClient({
     return () => window.removeEventListener("pageshow", handlePageShow);
   }, []);
 
+  // A single event with no other events on the same date has a unique enough
+  // date to key on, but two events can share a date (different venues), so
+  // selection is tracked by array index rather than date.
+  function handleTopChoiceChange(choice: TopChoice) {
+    setTopChoice(choice);
+    setPickupChoice(null);
+    setSelectedEventIndex(null);
+    setSelectedBorough(null);
+    setSelectedZoneId(null);
+  }
+  function handlePickupChoiceChange(choice: PickupChoice) {
+    setPickupChoice(choice);
+    setSelectedEventIndex(null);
+  }
+  function handleBoroughChange(borough: string) {
+    setSelectedBorough(borough);
+    setSelectedZoneId(null);
+  }
+
   const totalSaucesSelected = Object.values(sauces).reduce((a, b) => a + b, 0);
   const paidSauces = Math.max(0, totalSaucesSelected - freeSauceAllotment);
   const grandTotalCents = totalCents + paidSauces * saucePriceCents;
 
-  const selection = useMemo(() => {
-    if (selectedKey === KITCHEN_KEY) return { kind: "kitchen" as const };
-    if (selectedKey.startsWith(EVENT_KEY_PREFIX)) {
-      const index = Number(selectedKey.slice(EVENT_KEY_PREFIX.length));
-      return { kind: "event" as const, event: events[index] };
-    }
-    const zoneId = selectedKey.slice(DELIVERY_KEY_PREFIX.length);
-    return {
-      kind: "delivery" as const,
-      zone: deliveryZones.find((z) => z.id === zoneId),
-    };
-  }, [selectedKey, events, deliveryZones]);
-
-  const deliveryFeeCents =
-    selection.kind === "delivery" && selection.zone
-      ? computeDeliveryFeeCents(selection.zone, grandTotalCents)
-      : 0;
-  const orderTotalCents = grandTotalCents + deliveryFeeCents;
-
-  // Delivery zones are grouped by borough for the picker; the sheet already
-  // returns them borough-clustered, so grouping just needs to track when the
-  // borough changes rather than re-sorting.
   const deliveryZonesByBorough = useMemo(() => {
     const groups: { borough: string; zones: DeliveryZone[] }[] = [];
     for (const zone of deliveryZones) {
@@ -114,6 +145,36 @@ export default function CheckoutClient({
     }
     return groups;
   }, [deliveryZones]);
+
+  const zonesInSelectedBorough = useMemo(
+    () => deliveryZones.filter((z) => z.borough === selectedBorough),
+    [deliveryZones, selectedBorough],
+  );
+
+  const selection = useMemo(() => {
+    if (topChoice === "pickup" && pickupChoice === "kitchen") {
+      return { kind: "kitchen" as const };
+    }
+    if (
+      topChoice === "pickup" &&
+      pickupChoice === "event" &&
+      selectedEventIndex !== null
+    ) {
+      const event = events[selectedEventIndex];
+      return event ? { kind: "event" as const, event } : null;
+    }
+    if (topChoice === "delivery" && selectedZoneId) {
+      const zone = deliveryZones.find((z) => z.id === selectedZoneId);
+      return zone ? { kind: "delivery" as const, zone } : null;
+    }
+    return null;
+  }, [topChoice, pickupChoice, selectedEventIndex, selectedZoneId, events, deliveryZones]);
+
+  const deliveryFeeCents =
+    selection?.kind === "delivery"
+      ? computeDeliveryFeeCents(selection.zone, grandTotalCents)
+      : 0;
+  const orderTotalCents = grandTotalCents + deliveryFeeCents;
 
   if (items.length === 0) {
     return (
@@ -157,9 +218,8 @@ export default function CheckoutClient({
 
   async function handlePaidSubmit(e: FormEvent) {
     e.preventDefault();
-    if (selection.kind === "kitchen") return;
-    if (selection.kind === "event" && !selection.event) return;
-    if (selection.kind === "delivery" && (!selection.zone || !address)) return;
+    if (!selection || selection.kind === "kitchen") return;
+    if (selection.kind === "delivery" && !address) return;
 
     setSubmitting(true);
     setError(null);
@@ -180,10 +240,10 @@ export default function CheckoutClient({
             selection.kind === "event"
               ? {
                   kind: "event",
-                  eventDate: selection.event!.date,
-                  venue: selection.event!.venue,
+                  eventDate: selection.event.date,
+                  venue: selection.event.venue,
                 }
-              : { kind: "delivery", zoneId: selection.zone!.id, address },
+              : { kind: "delivery", zoneId: selection.zone.id, address },
         }),
       });
       const data = await res.json();
@@ -207,46 +267,115 @@ export default function CheckoutClient({
         <label className="text-sm font-medium text-maroon/70">
           How would you like to get your order?
         </label>
-        <select
-          value={selectedKey}
-          onChange={(e) => setSelectedKey(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-maroon/20 bg-background px-4 py-3 text-maroon"
-        >
-          {events.length > 0 && (
-            <optgroup label="Pickup at an Event">
-              {events.map((event, index) => (
-                <option key={eventKey(index)} value={eventKey(index)}>
-                  {formatEventOptionLabel(event)}
-                </option>
-              ))}
-            </optgroup>
-          )}
-          <optgroup label="Pickup at Our Kitchen">
-            <option value={KITCHEN_KEY}>
-              Our Kitchen, {PICKUP_ADDRESS} — Free
-            </option>
-          </optgroup>
-          {deliveryZonesByBorough.map(({ borough, zones }) => (
-            <optgroup key={borough} label={`Delivery — ${borough}`}>
-              {zones.map((zone) => (
-                <option key={zone.id} value={deliveryKey(zone.id)}>
-                  {formatDeliveryOptionLabel(
-                    zone,
-                    computeDeliveryFeeCents(zone, grandTotalCents),
-                  )}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+        <div className="mt-2">
+          <PillGroup
+            options={[
+              { value: "pickup", label: "Pickup" },
+              ...(deliveryZones.length > 0
+                ? [{ value: "delivery" as TopChoice, label: "Delivery" }]
+                : []),
+            ]}
+            value={topChoice}
+            onChange={handleTopChoiceChange}
+          />
+        </div>
       </div>
+
+      {topChoice === "pickup" && (
+        <div className="mt-4">
+          <label className="text-sm font-medium text-maroon/70">
+            Where would you like to pick up?
+          </label>
+          <div className="mt-2">
+            <PillGroup
+              options={[
+                ...(events.length > 0
+                  ? [{ value: "event" as PickupChoice, label: "At an Event" }]
+                  : []),
+                { value: "kitchen", label: "At Our Kitchen" },
+              ]}
+              value={pickupChoice}
+              onChange={handlePickupChoiceChange}
+            />
+          </div>
+        </div>
+      )}
+
+      {topChoice === "pickup" && pickupChoice === "event" && (
+        <div className="mt-4">
+          <label className="text-sm font-medium text-maroon/70">
+            Pick an event
+          </label>
+          <select
+            value={selectedEventIndex ?? ""}
+            onChange={(e) => setSelectedEventIndex(Number(e.target.value))}
+            required
+            className="mt-1 w-full rounded-xl border border-maroon/20 bg-background px-4 py-3 text-maroon"
+          >
+            <option value="" disabled>
+              Select an event…
+            </option>
+            {events.map((event, index) => (
+              <option key={index} value={index}>
+                {formatEventOptionLabel(event)}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {topChoice === "delivery" && (
+        <div className="mt-4">
+          <label className="text-sm font-medium text-maroon/70">
+            Choose your borough
+          </label>
+          <div className="mt-2">
+            <PillGroup
+              options={deliveryZonesByBorough.map(({ borough, zones }) => ({
+                value: borough,
+                label: borough,
+                sublabel: boroughEstimateLabel(zones, grandTotalCents),
+              }))}
+              value={selectedBorough}
+              onChange={handleBoroughChange}
+            />
+          </div>
+        </div>
+      )}
+
+      {topChoice === "delivery" && selectedBorough && (
+        <div className="mt-4">
+          <label className="text-sm font-medium text-maroon/70">
+            Choose your neighborhood
+          </label>
+          <select
+            value={selectedZoneId ?? ""}
+            onChange={(e) => setSelectedZoneId(e.target.value)}
+            required
+            className="mt-1 w-full rounded-xl border border-maroon/20 bg-background px-4 py-3 text-maroon"
+          >
+            <option value="" disabled>
+              Select a neighborhood…
+            </option>
+            {zonesInSelectedBorough.map((zone) => {
+              const feeCents = computeDeliveryFeeCents(zone, grandTotalCents);
+              return (
+                <option key={zone.id} value={zone.id}>
+                  {zone.neighborhood} —{" "}
+                  {feeCents === 0 ? "Free" : formatPrice(feeCents)}
+                </option>
+              );
+            })}
+          </select>
+        </div>
+      )}
 
       <div className="mt-6 rounded-3xl bg-cream p-6">
         <div className="flex items-center justify-between text-lg font-semibold text-maroon">
           <span>Order total</span>
           <span>{formatPrice(orderTotalCents)}</span>
         </div>
-        {selection.kind === "delivery" && selection.zone && (
+        {selection?.kind === "delivery" && (
           <div className="mt-1 flex items-center justify-between text-sm text-maroon/70">
             <span>Delivery</span>
             <span>{deliveryFeeCents === 0 ? "Free" : formatPrice(deliveryFeeCents)}</span>
@@ -254,7 +383,7 @@ export default function CheckoutClient({
         )}
       </div>
 
-      {selection.kind === "kitchen" && (
+      {selection?.kind === "kitchen" && (
         <div className="mt-8 flex flex-col gap-4">
           <p className="text-maroon/70">
             Pick up at our kitchen: <strong>{PICKUP_ADDRESS}</strong>. Message
@@ -273,7 +402,7 @@ export default function CheckoutClient({
         </div>
       )}
 
-      {(selection.kind === "event" || selection.kind === "delivery") && (
+      {(selection?.kind === "event" || selection?.kind === "delivery") && (
         <form onSubmit={handlePaidSubmit} className="mt-8 flex flex-col gap-4">
           <ContactFields
             name={name}

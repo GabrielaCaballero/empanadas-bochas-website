@@ -27,11 +27,21 @@ function slugify(text: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+// Sheet formatting varies (bare "5", currency-formatted "$5.00", possibly
+// "$1,200.00" for larger numbers) — this only accepts strings that are
+// ENTIRELY a number (with optional $ and thousands commas), not just
+// strings that happen to contain digits somewhere. That distinction matters
+// because the sheet's trailing free-text note row ("A partir de $120 el
+// envío es FREE.") also contains a dollar amount — it must fail to parse
+// here (so it gets skipped as non-data) rather than be read as a price.
+const PRICE_PATTERN = /^\$?-?[\d,]+(\.\d+)?$/;
+
 function parsePriceCents(raw: string): number | null {
   const trimmed = raw.trim();
   if (/^free$/i.test(trimmed)) return 0;
-  const n = Number(trimmed);
-  if (!Number.isFinite(n) || trimmed === "") return null;
+  if (!PRICE_PATTERN.test(trimmed)) return null;
+  const n = Number(trimmed.replace(/[$,]/g, ""));
+  if (!Number.isFinite(n)) return null;
   return Math.round(n * 100);
 }
 
