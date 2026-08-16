@@ -4,11 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import type { EventEntry } from "@/lib/events";
-import {
-  computeDeliveryFeeCents,
-  FREE_DELIVERY_THRESHOLD_CENTS,
-  type DeliveryZone,
-} from "@/lib/delivery-pricing";
+import { computeDeliveryFeeCents, type DeliveryZone } from "@/lib/delivery-pricing";
 import { formatPrice } from "@/lib/square";
 import { PICKUP_ADDRESS } from "@/lib/business-info";
 
@@ -23,10 +19,8 @@ function formatEventOptionLabel(event: EventEntry) {
   return `${event.venue} — ${date}, ${event.time}`;
 }
 
-function boroughEstimateLabel(zones: DeliveryZone[], cartSubtotalCents: number) {
-  if (cartSubtotalCents >= FREE_DELIVERY_THRESHOLD_CENTS) return "Free";
-  const minCents = Math.min(...zones.map((z) => z.priceCents));
-  return minCents === 0 ? "From Free" : `From ${formatPrice(minCents)}`;
+function normalizeZip(raw: string) {
+  return raw.replace(/\D/g, "").slice(0, 5);
 }
 
 function PillGroup<T extends string>({
@@ -83,13 +77,12 @@ export default function CheckoutClient({
   const [selectedEventIndex, setSelectedEventIndex] = useState<number | null>(
     null,
   );
-  const [selectedBorough, setSelectedBorough] = useState<string | null>(null);
-  const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
+  const [address, setAddress] = useState("");
+  const [zipCode, setZipCode] = useState("");
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -116,39 +109,26 @@ export default function CheckoutClient({
     setTopChoice(choice);
     setPickupChoice(null);
     setSelectedEventIndex(null);
-    setSelectedBorough(null);
-    setSelectedZoneId(null);
+    setAddress("");
+    setZipCode("");
   }
   function handlePickupChoiceChange(choice: PickupChoice) {
     setPickupChoice(choice);
     setSelectedEventIndex(null);
-  }
-  function handleBoroughChange(borough: string) {
-    setSelectedBorough(borough);
-    setSelectedZoneId(null);
   }
 
   const totalSaucesSelected = Object.values(sauces).reduce((a, b) => a + b, 0);
   const paidSauces = Math.max(0, totalSaucesSelected - freeSauceAllotment);
   const grandTotalCents = totalCents + paidSauces * saucePriceCents;
 
-  const deliveryZonesByBorough = useMemo(() => {
-    const groups: { borough: string; zones: DeliveryZone[] }[] = [];
-    for (const zone of deliveryZones) {
-      const lastGroup = groups[groups.length - 1];
-      if (lastGroup && lastGroup.borough === zone.borough) {
-        lastGroup.zones.push(zone);
-      } else {
-        groups.push({ borough: zone.borough, zones: [zone] });
-      }
-    }
-    return groups;
-  }, [deliveryZones]);
-
-  const zonesInSelectedBorough = useMemo(
-    () => deliveryZones.filter((z) => z.borough === selectedBorough),
-    [deliveryZones, selectedBorough],
-  );
+  // Looked up live as the customer types their ZIP — a zone's postalCodes
+  // list is the same data the price picker used to make them choose from
+  // manually; matching against it directly means one address entry instead
+  // of "pick your zone, then also type your address" as two separate steps.
+  const matchedZone = useMemo(() => {
+    if (zipCode.length !== 5) return undefined;
+    return deliveryZones.find((z) => z.postalCodes.includes(zipCode));
+  }, [zipCode, deliveryZones]);
 
   const selection = useMemo(() => {
     if (topChoice === "pickup" && pickupChoice === "kitchen") {
@@ -162,12 +142,11 @@ export default function CheckoutClient({
       const event = events[selectedEventIndex];
       return event ? { kind: "event" as const, event } : null;
     }
-    if (topChoice === "delivery" && selectedZoneId) {
-      const zone = deliveryZones.find((z) => z.id === selectedZoneId);
-      return zone ? { kind: "delivery" as const, zone } : null;
+    if (topChoice === "delivery" && matchedZone && address) {
+      return { kind: "delivery" as const, zone: matchedZone };
     }
     return null;
-  }, [topChoice, pickupChoice, selectedEventIndex, selectedZoneId, events, deliveryZones]);
+  }, [topChoice, pickupChoice, selectedEventIndex, matchedZone, address, events]);
 
   const deliveryFeeCents =
     selection?.kind === "delivery"
@@ -195,7 +174,6 @@ export default function CheckoutClient({
   async function handlePaidSubmit(e: FormEvent) {
     e.preventDefault();
     if (!selection) return;
-    if (selection.kind === "delivery" && !address) return;
 
     setSubmitting(true);
     setError(null);
@@ -221,7 +199,11 @@ export default function CheckoutClient({
                 }
               : selection.kind === "kitchen"
                 ? { kind: "kitchen" }
-                : { kind: "delivery", zoneId: selection.zone.id, address },
+                : {
+                    kind: "delivery",
+                    zoneId: selection.zone.id,
+                    address: `${address}, ${zipCode}`,
+                  },
         }),
       });
       const data = await res.json();
@@ -303,48 +285,52 @@ export default function CheckoutClient({
       )}
 
       {topChoice === "delivery" && (
-        <div className="mt-4">
-          <label className="text-sm font-medium text-maroon/70">
-            Choose your borough
-          </label>
-          <div className="mt-2">
-            <PillGroup
-              options={deliveryZonesByBorough.map(({ borough, zones }) => ({
-                value: borough,
-                label: borough,
-                sublabel: boroughEstimateLabel(zones, grandTotalCents),
-              }))}
-              value={selectedBorough}
-              onChange={handleBoroughChange}
+        <div className="mt-4 flex flex-col gap-4">
+          <div>
+            <label className="text-sm font-medium text-maroon/70">
+              Delivery address
+            </label>
+            <input
+              type="text"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Street address, apt #"
+              required
+              className="mt-1 w-full rounded-xl border border-maroon/20 bg-background px-4 py-3 text-maroon"
             />
           </div>
-        </div>
-      )}
-
-      {topChoice === "delivery" && selectedBorough && (
-        <div className="mt-4">
-          <label className="text-sm font-medium text-maroon/70">
-            Choose your neighborhood
-          </label>
-          <select
-            value={selectedZoneId ?? ""}
-            onChange={(e) => setSelectedZoneId(e.target.value)}
-            required
-            className="mt-1 w-full rounded-xl border border-maroon/20 bg-background px-4 py-3 text-maroon"
-          >
-            <option value="" disabled>
-              Select a neighborhood…
-            </option>
-            {zonesInSelectedBorough.map((zone) => {
-              const feeCents = computeDeliveryFeeCents(zone, grandTotalCents);
-              return (
-                <option key={zone.id} value={zone.id}>
-                  {zone.neighborhood} —{" "}
-                  {feeCents === 0 ? "Free" : formatPrice(feeCents)}
-                </option>
-              );
-            })}
-          </select>
+          <div>
+            <label className="text-sm font-medium text-maroon/70">
+              ZIP code
+            </label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={zipCode}
+              onChange={(e) => setZipCode(normalizeZip(e.target.value))}
+              placeholder="11101"
+              required
+              className="mt-1 w-full max-w-40 rounded-xl border border-maroon/20 bg-background px-4 py-3 text-maroon"
+            />
+            {zipCode.length === 5 &&
+              (matchedZone ? (
+                <p className="mt-2 text-sm text-maroon/70">
+                  {matchedZone.neighborhood}, {matchedZone.borough} — delivery
+                  is{" "}
+                  {(() => {
+                    const feeCents = computeDeliveryFeeCents(
+                      matchedZone,
+                      grandTotalCents,
+                    );
+                    return feeCents === 0 ? "Free" : formatPrice(feeCents);
+                  })()}
+                </p>
+              ) : (
+                <p className="mt-2 text-sm text-red-600">
+                  We don&rsquo;t currently deliver to that ZIP code.
+                </p>
+              ))}
+          </div>
         </div>
       )}
 
@@ -378,20 +364,6 @@ export default function CheckoutClient({
             phone={phone}
             setPhone={setPhone}
           />
-          {selection.kind === "delivery" && (
-            <div>
-              <label className="text-sm font-medium text-maroon/70">
-                Delivery address
-              </label>
-              <input
-                type="text"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                required
-                className="mt-1 w-full rounded-xl border border-maroon/20 bg-background px-4 py-3 text-maroon"
-              />
-            </div>
-          )}
           {error && <p className="text-sm text-red-600">{error}</p>}
           <button
             type="submit"
