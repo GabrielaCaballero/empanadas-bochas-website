@@ -218,7 +218,12 @@ export type OrderSummary = {
   createdAt: string;
   state: string;
   totalCents: number;
-  lineItems: { name: string; quantity: string; note?: string }[];
+  lineItems: {
+    name: string;
+    quantity: string;
+    note?: string;
+    totalCents: number;
+  }[];
 };
 
 function mapOrderSummary(o: SquareObject): OrderSummary {
@@ -231,6 +236,7 @@ function mapOrderSummary(o: SquareObject): OrderSummary {
       name: li.name,
       quantity: li.quantity,
       note: li.note,
+      totalCents: li.total_money?.amount ?? 0,
     })),
   };
 }
