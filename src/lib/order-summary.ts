@@ -60,54 +60,9 @@ export function buildSquareLineItems(
   return lineItems;
 }
 
-export function buildOrderSummaryHtml({
-  items,
-  sauces,
-  freeSauceAllotment,
-  saucePriceCents,
-  totalCents,
-}: {
-  items: CartLineItem[];
-  sauces: Record<string, number>;
-  freeSauceAllotment: number;
-  saucePriceCents: number;
-  totalCents: number;
-}): string {
-  const itemRows = items
-    .map((item) => {
-      const flavorNote = item.flavors
-        ? `<br/><span style="color:#666;font-size:13px">${Object.entries(
-            item.flavors,
-          )
-            .filter(([, count]) => count > 0)
-            .map(([flavor, count]) => `${count}x ${flavor}`)
-            .join(", ")}</span>`
-        : "";
-      return `<li>${item.quantity}x ${item.name} — ${formatPrice(item.unitPriceCents * item.quantity)}${flavorNote}</li>`;
-    })
-    .join("");
-
-  const sauceRows = sauceBreakdown(sauces, freeSauceAllotment)
-    .map(({ flavor, free, paid }) => {
-      const parts: string[] = [];
-      if (free > 0) parts.push(`${free}x ${flavor} (free)`);
-      if (paid > 0)
-        parts.push(`${paid}x ${flavor} (${formatPrice(saucePriceCents)} ea)`);
-      return `<li>${parts.join(", ")}</li>`;
-    })
-    .join("");
-
-  return `
-    <h2>Order Summary</h2>
-    <ul>${itemRows}</ul>
-    ${sauceRows ? `<h3>Sauces</h3><ul>${sauceRows}</ul>` : ""}
-    <p><strong>Total: ${formatPrice(totalCents)}</strong></p>
-  `;
-}
-
-// Builds the same kind of summary as buildOrderSummaryHtml, but sourced from
-// a paid Square order (post-checkout) rather than the client's cart state —
-// used once payment is confirmed, so it reflects what was actually charged.
+// Builds an order summary sourced from a paid Square order (post-checkout)
+// rather than the client's cart state — used once payment is confirmed, so
+// it reflects what was actually charged.
 export function buildSquareOrderSummaryHtml(order: OrderSummary): string {
   const itemRows = order.lineItems
     .map((item) => {

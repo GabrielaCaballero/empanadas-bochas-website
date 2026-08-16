@@ -1,38 +1,65 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import type { EventEntry } from "@/lib/events";
+import {
+  computeDeliveryFeeCents,
+  type DeliveryZone,
+} from "@/lib/delivery-pricing";
 import { formatPrice } from "@/lib/square";
 import { whatsAppUrl, PICKUP_ADDRESS } from "@/lib/business-info";
 
-type Mode = "event" | "house" | "delivery";
+const EVENT_KEY_PREFIX = "event:";
+const DELIVERY_KEY_PREFIX = "delivery:";
+const KITCHEN_KEY = "kitchen";
+
+// Events are identified by their position in the list, not by date — two
+// events can legitimately share a date (different venues), so date alone
+// isn't a unique key.
+function eventKey(index: number) {
+  return `${EVENT_KEY_PREFIX}${index}`;
+}
+function deliveryKey(zoneId: string) {
+  return `${DELIVERY_KEY_PREFIX}${zoneId}`;
+}
+
+function formatEventOptionLabel(event: EventEntry) {
+  const date = new Date(`${event.date}T00:00:00`).toLocaleDateString(
+    "en-US",
+    { weekday: "short", month: "short", day: "numeric" },
+  );
+  return `${event.venue} — ${date}, ${event.time} — Free`;
+}
+
+function formatDeliveryOptionLabel(zone: DeliveryZone, feeCents: number) {
+  const feeLabel = feeCents === 0 ? "Free" : formatPrice(feeCents);
+  return `${zone.neighborhood} — ${feeLabel}`;
+}
 
 export default function CheckoutClient({
   saucePriceCents,
   events,
+  deliveryZones,
 }: {
   saucePriceCents: number;
   events: EventEntry[];
+  deliveryZones: DeliveryZone[];
 }) {
   const { items, sauces, totalCents, freeSauceAllotment, clearCart } =
     useCart();
 
-  const [mode, setMode] = useState<Mode>("event");
+  const [selectedKey, setSelectedKey] = useState(
+    events[0] ? eventKey(0) : KITCHEN_KEY,
+  );
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [selectedEventDate, setSelectedEventDate] = useState(
-    events[0]?.date ?? "",
-  );
   const [address, setAddress] = useState("");
-  const [preferredDate, setPreferredDate] = useState("");
-  const [notes, setNotes] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [deliverySubmitted, setDeliverySubmitted] = useState(false);
 
   useEffect(() => {
     // If the browser restores this page from the back-forward cache (e.g.
@@ -53,7 +80,42 @@ export default function CheckoutClient({
   const paidSauces = Math.max(0, totalSaucesSelected - freeSauceAllotment);
   const grandTotalCents = totalCents + paidSauces * saucePriceCents;
 
-  if (items.length === 0 && !deliverySubmitted) {
+  const selection = useMemo(() => {
+    if (selectedKey === KITCHEN_KEY) return { kind: "kitchen" as const };
+    if (selectedKey.startsWith(EVENT_KEY_PREFIX)) {
+      const index = Number(selectedKey.slice(EVENT_KEY_PREFIX.length));
+      return { kind: "event" as const, event: events[index] };
+    }
+    const zoneId = selectedKey.slice(DELIVERY_KEY_PREFIX.length);
+    return {
+      kind: "delivery" as const,
+      zone: deliveryZones.find((z) => z.id === zoneId),
+    };
+  }, [selectedKey, events, deliveryZones]);
+
+  const deliveryFeeCents =
+    selection.kind === "delivery" && selection.zone
+      ? computeDeliveryFeeCents(selection.zone, grandTotalCents)
+      : 0;
+  const orderTotalCents = grandTotalCents + deliveryFeeCents;
+
+  // Delivery zones are grouped by borough for the picker; the sheet already
+  // returns them borough-clustered, so grouping just needs to track when the
+  // borough changes rather than re-sorting.
+  const deliveryZonesByBorough = useMemo(() => {
+    const groups: { borough: string; zones: DeliveryZone[] }[] = [];
+    for (const zone of deliveryZones) {
+      const lastGroup = groups[groups.length - 1];
+      if (lastGroup && lastGroup.borough === zone.borough) {
+        lastGroup.zones.push(zone);
+      } else {
+        groups.push({ borough: zone.borough, zones: [zone] });
+      }
+    }
+    return groups;
+  }, [deliveryZones]);
+
+  if (items.length === 0) {
     return (
       <section className="mx-auto w-full max-w-3xl flex-1 px-6 py-16">
         <h1 className="font-display text-4xl font-semibold text-maroon">
@@ -69,14 +131,6 @@ export default function CheckoutClient({
       </section>
     );
   }
-
-  const orderPayload = {
-    items,
-    sauces,
-    freeSauceAllotment,
-    saucePriceCents,
-    totalCents: grandTotalCents,
-  };
 
   function buildWhatsAppMessage() {
     const lines = items.map((item) => {
@@ -101,20 +155,35 @@ export default function CheckoutClient({
     return `Hi! I'd like to arrange pickup at your kitchen for:\n${lines.join("\n")}\nTotal: ${formatPrice(grandTotalCents)}`;
   }
 
-  async function handleEventSubmit(e: FormEvent) {
+  async function handlePaidSubmit(e: FormEvent) {
     e.preventDefault();
+    if (selection.kind === "kitchen") return;
+    if (selection.kind === "event" && !selection.event) return;
+    if (selection.kind === "delivery" && (!selection.zone || !address)) return;
+
     setSubmitting(true);
     setError(null);
     try {
-      const res = await fetch("/api/checkout/event", {
+      const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...orderPayload,
-          eventDate: selectedEventDate,
+          items,
+          sauces,
+          freeSauceAllotment,
+          saucePriceCents,
+          totalCents: grandTotalCents,
           customerName: name,
           customerEmail: email,
           customerPhone: phone,
+          fulfillment:
+            selection.kind === "event"
+              ? {
+                  kind: "event",
+                  eventDate: selection.event!.date,
+                  venue: selection.event!.venue,
+                }
+              : { kind: "delivery", zoneId: selection.zone!.id, address },
         }),
       });
       const data = await res.json();
@@ -128,134 +197,64 @@ export default function CheckoutClient({
     }
   }
 
-  async function handleDeliverySubmit(e: FormEvent) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/checkout/delivery", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...orderPayload,
-          address,
-          preferredDate,
-          notes,
-          customerName: name,
-          customerEmail: email,
-          customerPhone: phone,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Something went wrong");
-      clearCart();
-      setDeliverySubmitted(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  if (deliverySubmitted) {
-    return (
-      <section className="mx-auto w-full max-w-3xl flex-1 px-6 py-16">
-        <h1 className="font-display text-4xl font-semibold text-maroon">
-          Request sent!
-        </h1>
-        <p className="mt-3 max-w-xl text-maroon/70">
-          We got your delivery request and sent you a confirmation email.
-          We&rsquo;ll follow up shortly with the delivery fee and a payment
-          link.
-        </p>
-        <Link
-          href="/shop"
-          className="mt-6 inline-block rounded-full bg-terracotta px-6 py-3 font-semibold text-background transition-colors hover:bg-rust"
-        >
-          Continue Shopping
-        </Link>
-      </section>
-    );
-  }
-
   return (
     <section className="mx-auto w-full max-w-3xl flex-1 px-6 py-16">
       <h1 className="font-display text-4xl font-semibold text-maroon">
         Checkout
       </h1>
 
-      <div className="mt-6 flex flex-wrap gap-2">
-        {(["event", "house", "delivery"] as Mode[]).map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => setMode(m)}
-            className={`rounded-full border px-5 py-2 text-sm font-semibold transition-colors ${
-              mode === m
-                ? "border-terracotta bg-terracotta text-background"
-                : "border-maroon/30 text-maroon hover:bg-maroon/5"
-            }`}
-          >
-            {m === "event"
-              ? "Pickup at an Event"
-              : m === "house"
-                ? "Pickup at Our Kitchen"
-                : "Delivery"}
-          </button>
-        ))}
-      </div>
-
-      <div className="mt-8 rounded-3xl bg-cream p-6">
-        <div className="flex items-center justify-between text-lg font-semibold text-maroon">
-          <span>Order total</span>
-          <span>{formatPrice(grandTotalCents)}</span>
-        </div>
-      </div>
-
-      {mode === "event" && (
-        <form onSubmit={handleEventSubmit} className="mt-8 flex flex-col gap-4">
-          <div>
-            <label className="text-sm font-medium text-maroon/70">
-              Pick an event
-            </label>
-            <select
-              value={selectedEventDate}
-              onChange={(e) => setSelectedEventDate(e.target.value)}
-              required
-              className="mt-1 w-full rounded-xl border border-maroon/20 bg-background px-4 py-3 text-maroon"
-            >
-              {events.map((event) => (
-                <option key={event.date} value={event.date}>
-                  {event.venue} —{" "}
-                  {new Date(`${event.date}T00:00:00`).toLocaleDateString(
-                    "en-US",
-                    { weekday: "short", month: "short", day: "numeric" },
-                  )}
-                  , {event.time}
+      <div className="mt-8">
+        <label className="text-sm font-medium text-maroon/70">
+          How would you like to get your order?
+        </label>
+        <select
+          value={selectedKey}
+          onChange={(e) => setSelectedKey(e.target.value)}
+          className="mt-1 w-full rounded-xl border border-maroon/20 bg-background px-4 py-3 text-maroon"
+        >
+          {events.length > 0 && (
+            <optgroup label="Pickup at an Event">
+              {events.map((event, index) => (
+                <option key={eventKey(index)} value={eventKey(index)}>
+                  {formatEventOptionLabel(event)}
                 </option>
               ))}
-            </select>
-          </div>
-          <ContactFields
-            name={name}
-            setName={setName}
-            email={email}
-            setEmail={setEmail}
-            phone={phone}
-            setPhone={setPhone}
-          />
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <button
-            type="submit"
-            disabled={submitting}
-            className="mt-2 rounded-full bg-terracotta px-6 py-3 font-semibold text-background transition-colors hover:bg-rust disabled:opacity-50"
-          >
-            {submitting ? "Redirecting to payment…" : "Pay Now"}
-          </button>
-        </form>
-      )}
+            </optgroup>
+          )}
+          <optgroup label="Pickup at Our Kitchen">
+            <option value={KITCHEN_KEY}>
+              Our Kitchen, {PICKUP_ADDRESS} — Free
+            </option>
+          </optgroup>
+          {deliveryZonesByBorough.map(({ borough, zones }) => (
+            <optgroup key={borough} label={`Delivery — ${borough}`}>
+              {zones.map((zone) => (
+                <option key={zone.id} value={deliveryKey(zone.id)}>
+                  {formatDeliveryOptionLabel(
+                    zone,
+                    computeDeliveryFeeCents(zone, grandTotalCents),
+                  )}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      </div>
 
-      {mode === "house" && (
+      <div className="mt-6 rounded-3xl bg-cream p-6">
+        <div className="flex items-center justify-between text-lg font-semibold text-maroon">
+          <span>Order total</span>
+          <span>{formatPrice(orderTotalCents)}</span>
+        </div>
+        {selection.kind === "delivery" && selection.zone && (
+          <div className="mt-1 flex items-center justify-between text-sm text-maroon/70">
+            <span>Delivery</span>
+            <span>{deliveryFeeCents === 0 ? "Free" : formatPrice(deliveryFeeCents)}</span>
+          </div>
+        )}
+      </div>
+
+      {selection.kind === "kitchen" && (
         <div className="mt-8 flex flex-col gap-4">
           <p className="text-maroon/70">
             Pick up at our kitchen: <strong>{PICKUP_ADDRESS}</strong>. Message
@@ -274,11 +273,8 @@ export default function CheckoutClient({
         </div>
       )}
 
-      {mode === "delivery" && (
-        <form
-          onSubmit={handleDeliverySubmit}
-          className="mt-8 flex flex-col gap-4"
-        >
+      {(selection.kind === "event" || selection.kind === "delivery") && (
+        <form onSubmit={handlePaidSubmit} className="mt-8 flex flex-col gap-4">
           <ContactFields
             name={name}
             setName={setName}
@@ -287,51 +283,27 @@ export default function CheckoutClient({
             phone={phone}
             setPhone={setPhone}
           />
-          <div>
-            <label className="text-sm font-medium text-maroon/70">
-              Delivery address
-            </label>
-            <input
-              type="text"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              required
-              className="mt-1 w-full rounded-xl border border-maroon/20 bg-background px-4 py-3 text-maroon"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-maroon/70">
-              Preferred date
-            </label>
-            <input
-              type="date"
-              value={preferredDate}
-              onChange={(e) => setPreferredDate(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-maroon/20 bg-background px-4 py-3 text-maroon"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-maroon/70">
-              Notes (optional)
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              className="mt-1 w-full rounded-xl border border-maroon/20 bg-background px-4 py-3 text-maroon"
-            />
-          </div>
-          <p className="text-sm text-maroon/60">
-            No payment yet — we&rsquo;ll follow up with the delivery fee and a
-            payment link once we&rsquo;ve confirmed your order.
-          </p>
+          {selection.kind === "delivery" && (
+            <div>
+              <label className="text-sm font-medium text-maroon/70">
+                Delivery address
+              </label>
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                required
+                className="mt-1 w-full rounded-xl border border-maroon/20 bg-background px-4 py-3 text-maroon"
+              />
+            </div>
+          )}
           {error && <p className="text-sm text-red-600">{error}</p>}
           <button
             type="submit"
             disabled={submitting}
             className="mt-2 rounded-full bg-terracotta px-6 py-3 font-semibold text-background transition-colors hover:bg-rust disabled:opacity-50"
           >
-            {submitting ? "Sending…" : "Request Delivery"}
+            {submitting ? "Redirecting to payment…" : "Pay Now"}
           </button>
         </form>
       )}

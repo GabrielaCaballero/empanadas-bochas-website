@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { formatPrice } from "@/lib/square";
+import type { CheckoutContext } from "@/lib/checkout-context";
 
 function formatEventDate(iso: string) {
   return new Date(`${iso}T00:00:00`).toLocaleDateString("en-US", {
@@ -16,19 +17,13 @@ function formatEventDate(iso: string) {
 export default function CheckoutSuccessClient({
   customerName,
   customerEmail,
-  venue,
-  eventDate,
-  eventTime,
-  eventAddress,
+  fulfillment,
   lineItems,
   totalCents,
 }: {
   customerName: string;
   customerEmail: string;
-  venue: string;
-  eventDate: string;
-  eventTime: string;
-  eventAddress: string;
+  fulfillment: CheckoutContext["fulfillment"];
   lineItems: { name: string; quantity: string; note?: string }[];
   totalCents: number;
 }) {
@@ -52,12 +47,36 @@ export default function CheckoutSuccessClient({
       </p>
 
       <div className="mt-8 rounded-3xl bg-cream p-6">
-        <p className="text-sm font-medium text-maroon/60">Pickup</p>
-        <p className="mt-1 font-semibold text-maroon">{venue}</p>
-        <p className="mt-1 text-sm text-maroon/70">
-          {formatEventDate(eventDate)} · {eventTime}
-        </p>
-        <p className="mt-1 text-sm text-maroon/70">{eventAddress}</p>
+        {fulfillment.kind === "event" ? (
+          <>
+            <p className="text-sm font-medium text-maroon/60">Pickup</p>
+            <p className="mt-1 font-semibold text-maroon">
+              {fulfillment.venue}
+            </p>
+            <p className="mt-1 text-sm text-maroon/70">
+              {formatEventDate(fulfillment.eventDate)} · {fulfillment.eventTime}
+            </p>
+            <p className="mt-1 text-sm text-maroon/70">
+              {fulfillment.eventAddress}
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="text-sm font-medium text-maroon/60">Delivery</p>
+            <p className="mt-1 font-semibold text-maroon">
+              {fulfillment.address}
+            </p>
+            <p className="mt-1 text-sm text-maroon/70">
+              {fulfillment.neighborhood}, {fulfillment.borough}
+            </p>
+            <p className="mt-1 text-sm text-maroon/70">
+              Delivery fee:{" "}
+              {fulfillment.feeCents === 0
+                ? "Free"
+                : formatPrice(fulfillment.feeCents)}
+            </p>
+          </>
+        )}
       </div>
 
       <div className="mt-4 rounded-3xl bg-cream p-6">
