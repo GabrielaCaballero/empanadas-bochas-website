@@ -1,5 +1,7 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { formatPrice, type OrderSummary } from "./square";
+import type { CheckoutContext } from "./checkout-context";
+import { PICKUP_ADDRESS } from "./business-info";
 
 const PAGE_WIDTH = 396; // 5.5in at 72dpi — a compact receipt, not a full page
 const MARGIN = 36;
@@ -9,17 +11,11 @@ const GRAY = rgb(0.4, 0.4, 0.4);
 export async function buildOrderReceiptPdf({
   order,
   customerName,
-  venue,
-  eventDate,
-  eventTime,
-  eventAddress,
+  fulfillment,
 }: {
   order: OrderSummary;
   customerName: string;
-  venue: string;
-  eventDate: string;
-  eventTime: string;
-  eventAddress: string;
+  fulfillment: CheckoutContext["fulfillment"];
 }): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.Helvetica);
@@ -50,10 +46,32 @@ export async function buildOrderReceiptPdf({
   draw("Empanadas Bochas", { size: 18, useBold: true, color: MAROON, gap: 22 });
   draw(`Order receipt — ${customerName}`, { size: 11, color: GRAY, gap: 20 });
 
-  draw("Pickup", { size: 10, useBold: true, color: GRAY, gap: 14 });
-  draw(venue, { size: 12, useBold: true, gap: 16 });
-  draw(`${eventDate} · ${eventTime}`, { size: 11, color: GRAY, gap: 14 });
-  draw(eventAddress, { size: 11, color: GRAY, gap: 22 });
+  if (fulfillment.kind === "event") {
+    draw("Pickup", { size: 10, useBold: true, color: GRAY, gap: 14 });
+    draw(fulfillment.venue, { size: 12, useBold: true, gap: 16 });
+    draw(`${fulfillment.eventDate} · ${fulfillment.eventTime}`, {
+      size: 11,
+      color: GRAY,
+      gap: 14,
+    });
+    draw(fulfillment.eventAddress, { size: 11, color: GRAY, gap: 22 });
+  } else if (fulfillment.kind === "kitchen") {
+    draw("Pickup", { size: 10, useBold: true, color: GRAY, gap: 14 });
+    draw("Our Kitchen", { size: 12, useBold: true, gap: 16 });
+    draw(PICKUP_ADDRESS, { size: 11, color: GRAY, gap: 22 });
+  } else {
+    draw("Delivery", { size: 10, useBold: true, color: GRAY, gap: 14 });
+    draw(fulfillment.address, { size: 12, useBold: true, gap: 16 });
+    draw(`${fulfillment.neighborhood}, ${fulfillment.borough}`, {
+      size: 11,
+      color: GRAY,
+      gap: 14,
+    });
+    draw(
+      `Delivery fee: ${fulfillment.feeCents === 0 ? "Free" : formatPrice(fulfillment.feeCents)}`,
+      { size: 11, color: GRAY, gap: 22 },
+    );
+  }
 
   draw("Order summary", { size: 10, useBold: true, color: GRAY, gap: 18 });
   for (const item of order.lineItems) {

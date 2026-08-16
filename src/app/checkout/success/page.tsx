@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
-import { getRecentOrders, findRecentMatchingOrder } from "@/lib/square";
+import { getRecentOrders, findRecentMatchingOrder, formatPrice } from "@/lib/square";
 import { decodeCheckoutContext } from "@/lib/checkout-context";
 import { sendEmail, BUSINESS_EMAIL } from "@/lib/email";
 import { buildSquareOrderSummaryHtml } from "@/lib/order-summary";
 import { buildOrderReceiptPdf } from "@/lib/order-pdf";
+import { PICKUP_ADDRESS } from "@/lib/business-info";
 import CheckoutSuccessClient from "@/components/CheckoutSuccessClient";
 
 const MATCH_WINDOW_MS = 30 * 60 * 1000;
@@ -28,13 +29,25 @@ export default async function CheckoutSuccessPage({
 
   if (!order) redirect("/cart?error=order");
 
-  const pickupHtml = `<p><strong>Pickup:</strong> ${ctx.venue}, ${ctx.eventDate} (${ctx.eventTime})<br/>${ctx.eventAddress}</p>`;
+  const fulfillment = ctx.fulfillment;
+  let pickupHtml: string;
+  let emailSubject: string;
+  if (fulfillment.kind === "event") {
+    pickupHtml = `<p><strong>Pickup:</strong> ${fulfillment.venue}, ${fulfillment.eventDate} (${fulfillment.eventTime})<br/>${fulfillment.eventAddress}</p>`;
+    emailSubject = `New pickup order — ${fulfillment.venue}, ${fulfillment.eventDate}`;
+  } else if (fulfillment.kind === "kitchen") {
+    pickupHtml = `<p><strong>Pickup:</strong> Our Kitchen, ${PICKUP_ADDRESS}</p>`;
+    emailSubject = `New kitchen pickup order — ${ctx.name}`;
+  } else {
+    pickupHtml = `<p><strong>Delivery to:</strong> ${fulfillment.address}<br/>${fulfillment.neighborhood}, ${fulfillment.borough}<br/>Delivery fee: ${fulfillment.feeCents === 0 ? "Free" : formatPrice(fulfillment.feeCents)}</p>`;
+    emailSubject = `New delivery order — ${fulfillment.neighborhood}, ${fulfillment.borough}`;
+  }
   const orderSummaryHtml = buildSquareOrderSummaryHtml(order);
 
   try {
     await sendEmail({
       to: BUSINESS_EMAIL,
-      subject: `New pickup order — ${ctx.venue}, ${ctx.eventDate}`,
+      subject: emailSubject,
       html: `${pickupHtml}<p>Name: ${ctx.name}<br/>Email: ${ctx.email}<br/>Phone: ${ctx.phone}</p>${orderSummaryHtml}`,
       idempotencyKey: `business-${order.id}`,
     });
@@ -46,10 +59,7 @@ export default async function CheckoutSuccessPage({
     const receiptPdf = await buildOrderReceiptPdf({
       order,
       customerName: ctx.name,
-      venue: ctx.venue,
-      eventDate: ctx.eventDate,
-      eventTime: ctx.eventTime,
-      eventAddress: ctx.eventAddress,
+      fulfillment,
     });
     await sendEmail({
       to: ctx.email,
@@ -66,10 +76,7 @@ export default async function CheckoutSuccessPage({
     <CheckoutSuccessClient
       customerName={ctx.name}
       customerEmail={ctx.email}
-      venue={ctx.venue}
-      eventDate={ctx.eventDate}
-      eventTime={ctx.eventTime}
-      eventAddress={ctx.eventAddress}
+      fulfillment={fulfillment}
       lineItems={order.lineItems}
       totalCents={order.totalCents}
     />

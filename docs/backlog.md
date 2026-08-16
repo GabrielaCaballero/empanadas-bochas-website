@@ -9,7 +9,8 @@ plain HTML strings in src/lib/order-summary.ts. Wants:
 
 - Add the logo / a food photo to the email template
 - Better visual breakdown of the order (currently a flat `<ul>`)
-- Consider generating a PDF receipt as an attachment
+- ~~Consider generating a PDF receipt as an attachment~~ — done: customer
+  confirmation emails now attach a PDF receipt (src/lib/order-pdf.ts).
 
 ## 2. Rework checkout to unify fulfillment method + details (Di Blu Bakery reference)
 

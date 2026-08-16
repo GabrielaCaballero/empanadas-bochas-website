@@ -24,7 +24,6 @@ Build a website that:
 - Gift cards
 - Customer accounts / saved addresses
 - Loyalty programs / promo codes
-- Live/automated delivery-fee calculation (handled manually for now, see Checkout below)
 - Multi-location / storefront features (Di Blu has two physical shops; Bochas does not)
 
 ## Tech stack
@@ -37,6 +36,7 @@ Build a website that:
 | Product catalog | Square Catalog API (live sync) | Owner updates products/prices only in Square, site reflects it automatically |
 | Order/delivery emails | [Resend](https://resend.com) (free tier) | Simple transactional email from a Next.js API route |
 | Events data | Google Sheet, published-to-web as CSV, fetched and parsed server-side | Non-technical, spreadsheet-based maintenance; **not** embedded as a raw sheet — the UI is fully custom-built from the parsed rows |
+| Delivery pricing | A second tab of the same Google Sheet (borough/postal code/neighborhood/price), published-to-web as CSV, fetched and parsed server-side the same way as events | Owner maintains fixed delivery zone prices herself; site auto-applies them at checkout, no code changes needed to adjust pricing |
 
 Considered and rejected: Square Online, Wix/Squarespace (both no-code — would give up the GitHub-collaboration/learning goal); pulling events live from Instagram (API requires Business/app review, fragile).
 
@@ -57,11 +57,11 @@ Each event/stop shows: venue name, address (with map), date/time, the venue's In
 
 ## Checkout
 
-No live storefront and delivery is via Uber (variable cost by distance), so checkout branches into three paths rather than a single generic flow:
+Checkout is one combined picker (Di Blu Bakery-style — every concrete option shows its price/timing inline, e.g. "Astoria — $5", "Fifth Hammer Brewing, Aug 13 — Free") rather than the customer choosing a fulfillment mode first and filling in details after. Under the hood it still branches into three paths:
 
 1. **Pickup — at an event.** Customer picks one of the scheduled stops from the Events data and pays immediately. Implemented by calling Square's Checkout API server-side (not a manually pre-made static link) so the resulting Square Order is itemized with real line items and a note (e.g. "Pickup: [venue], [date]"). This is what makes the order traceable — a static link has no item/pickup context.
 2. **Pickup — at her kitchen** (45-21 45th Street, Long Island City, NY 11104). No online payment; a WhatsApp "click to chat" link (`wa.me/19178303570?text=...`, prefilled with an order summary) lets the customer message the business directly to arrange pickup and payment.
-3. **Delivery.** Customer submits an order + address + preferred date via a form (no payment collected yet). This mirrors Di Blu's own fallback for non-standard delivery: they manually quote a fee and send a payment link. Here, the business owner receives an email with the order, calculates the Uber delivery cost herself, and sends the customer a Square Checkout Link to pay.
+3. **Delivery.** Customer picks their neighborhood from the combined picker, sees the delivery fee live (from the delivery-pricing sheet, with free delivery site-wide once the cart subtotal reaches $120), and pays immediately — items + delivery fee in one Square charge, same as event pickup. No more manual after-the-fact quoting.
 
 **Order tracking:** Square Dashboard → Orders is the system of record (same place the owner already checks for sales) for paid orders. In addition, every order/request (all three paths) triggers an automatic email via Resend:
 - To the business inbox (`empanadasbochas@gmail.com`) — a quick-glance summary of what/when/where, so she doesn't have to dig through Square's UI to know what to prep.
@@ -86,4 +86,3 @@ No live storefront and delivery is via Uber (variable cost by distance), so chec
 ## Open items
 
 - Confirm exact Google Sheet columns/format once the owner sets it up.
-- Decide whether delivery-fee automation is worth adding in a later version.

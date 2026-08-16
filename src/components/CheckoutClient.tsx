@@ -1,38 +1,91 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import type { EventEntry } from "@/lib/events";
+import { computeDeliveryFeeCents, type DeliveryZone } from "@/lib/delivery-pricing";
 import { formatPrice } from "@/lib/square";
 import { whatsAppUrl, PICKUP_ADDRESS } from "@/lib/business-info";
 
-type Mode = "event" | "house" | "delivery";
+type TopChoice = "pickup" | "delivery";
+type PickupChoice = "event" | "kitchen";
+
+function formatEventOptionLabel(event: EventEntry) {
+  const date = new Date(`${event.date}T00:00:00`).toLocaleDateString(
+    "en-US",
+    { weekday: "short", month: "short", day: "numeric" },
+  );
+  return `${event.venue} — ${date}, ${event.time}`;
+}
+
+function normalizeZip(raw: string) {
+  return raw.replace(/\D/g, "").slice(0, 5);
+}
+
+function PillGroup<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: T; label: string; sublabel?: string }[];
+  value: T | null;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          className={`rounded-full border px-5 py-2 text-left text-sm font-semibold transition-colors ${
+            value === opt.value
+              ? "border-terracotta bg-terracotta text-background"
+              : "border-maroon/30 text-maroon hover:bg-maroon/5"
+          }`}
+        >
+          {opt.label}
+          {opt.sublabel && (
+            <span
+              className={
+                value === opt.value ? "ml-1.5 opacity-80" : "ml-1.5 text-maroon/50"
+              }
+            >
+              — {opt.sublabel}
+            </span>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export default function CheckoutClient({
   saucePriceCents,
   events,
+  deliveryZones,
 }: {
   saucePriceCents: number;
   events: EventEntry[];
+  deliveryZones: DeliveryZone[];
 }) {
-  const { items, sauces, totalCents, freeSauceAllotment, clearCart } =
-    useCart();
+  const { items, sauces, totalCents, freeSauceAllotment } = useCart();
 
-  const [mode, setMode] = useState<Mode>("event");
+  const [topChoice, setTopChoice] = useState<TopChoice | null>(null);
+  const [pickupChoice, setPickupChoice] = useState<PickupChoice | null>(null);
+  const [selectedEventIndex, setSelectedEventIndex] = useState<number | null>(
+    null,
+  );
+  const [address, setAddress] = useState("");
+  const [zipCode, setZipCode] = useState("");
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [selectedEventDate, setSelectedEventDate] = useState(
-    events[0]?.date ?? "",
-  );
-  const [address, setAddress] = useState("");
-  const [preferredDate, setPreferredDate] = useState("");
-  const [notes, setNotes] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [deliverySubmitted, setDeliverySubmitted] = useState(false);
 
   useEffect(() => {
     // If the browser restores this page from the back-forward cache (e.g.
@@ -49,11 +102,62 @@ export default function CheckoutClient({
     return () => window.removeEventListener("pageshow", handlePageShow);
   }, []);
 
+  // A single event with no other events on the same date has a unique enough
+  // date to key on, but two events can share a date (different venues), so
+  // selection is tracked by array index rather than date.
+  function handleTopChoiceChange(choice: TopChoice) {
+    setTopChoice(choice);
+    setPickupChoice(null);
+    setSelectedEventIndex(null);
+    setAddress("");
+    setZipCode("");
+  }
+  function handlePickupChoiceChange(choice: PickupChoice) {
+    setPickupChoice(choice);
+    setSelectedEventIndex(null);
+  }
+
   const totalSaucesSelected = Object.values(sauces).reduce((a, b) => a + b, 0);
   const paidSauces = Math.max(0, totalSaucesSelected - freeSauceAllotment);
   const grandTotalCents = totalCents + paidSauces * saucePriceCents;
 
-  if (items.length === 0 && !deliverySubmitted) {
+  // Looked up live as the customer types their ZIP — a zone's postalCodes
+  // list is the same data the price picker used to make them choose from
+  // manually; matching against it directly means one address entry instead
+  // of "pick your zone, then also type your address" as two separate steps.
+  const matchedZone = useMemo(() => {
+    if (zipCode.length !== 5) return undefined;
+    return deliveryZones.find((z) => z.postalCodes.includes(zipCode));
+  }, [zipCode, deliveryZones]);
+  const matchedZoneFeeCents = matchedZone
+    ? computeDeliveryFeeCents(matchedZone, grandTotalCents)
+    : null;
+
+  const selection = useMemo(() => {
+    if (topChoice === "pickup" && pickupChoice === "kitchen") {
+      return { kind: "kitchen" as const };
+    }
+    if (
+      topChoice === "pickup" &&
+      pickupChoice === "event" &&
+      selectedEventIndex !== null
+    ) {
+      const event = events[selectedEventIndex];
+      return event ? { kind: "event" as const, event } : null;
+    }
+    if (topChoice === "delivery" && matchedZone && address) {
+      return { kind: "delivery" as const, zone: matchedZone };
+    }
+    return null;
+  }, [topChoice, pickupChoice, selectedEventIndex, matchedZone, address, events]);
+
+  const deliveryFeeCents =
+    selection?.kind === "delivery"
+      ? computeDeliveryFeeCents(selection.zone, grandTotalCents)
+      : 0;
+  const orderTotalCents = grandTotalCents + deliveryFeeCents;
+
+  if (items.length === 0) {
     return (
       <section className="mx-auto w-full max-w-3xl flex-1 px-6 py-16">
         <h1 className="font-display text-4xl font-semibold text-maroon">
@@ -70,51 +174,39 @@ export default function CheckoutClient({
     );
   }
 
-  const orderPayload = {
-    items,
-    sauces,
-    freeSauceAllotment,
-    saucePriceCents,
-    totalCents: grandTotalCents,
-  };
-
-  function buildWhatsAppMessage() {
-    const lines = items.map((item) => {
-      const flavorNote = item.flavors
-        ? " (" +
-          Object.entries(item.flavors)
-            .filter(([, count]) => count > 0)
-            .map(([flavor, count]) => `${count}x ${flavor}`)
-            .join(", ") +
-          ")"
-        : "";
-      return `${item.quantity}x ${item.name}${flavorNote}`;
-    });
-    if (totalSaucesSelected > 0) {
-      lines.push(
-        Object.entries(sauces)
-          .filter(([, count]) => count > 0)
-          .map(([flavor, count]) => `${count}x Sauce - ${flavor}`)
-          .join(", "),
-      );
-    }
-    return `Hi! I'd like to arrange pickup at your kitchen for:\n${lines.join("\n")}\nTotal: ${formatPrice(grandTotalCents)}`;
-  }
-
-  async function handleEventSubmit(e: FormEvent) {
+  async function handlePaidSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!selection) return;
+
     setSubmitting(true);
     setError(null);
     try {
-      const res = await fetch("/api/checkout/event", {
+      const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...orderPayload,
-          eventDate: selectedEventDate,
+          items,
+          sauces,
+          freeSauceAllotment,
+          saucePriceCents,
+          totalCents: grandTotalCents,
           customerName: name,
           customerEmail: email,
           customerPhone: phone,
+          fulfillment:
+            selection.kind === "event"
+              ? {
+                  kind: "event",
+                  eventDate: selection.event.date,
+                  venue: selection.event.venue,
+                }
+              : selection.kind === "kitchen"
+                ? { kind: "kitchen" }
+                : {
+                    kind: "delivery",
+                    zoneId: selection.zone.id,
+                    address: `${address}, ${zipCode}`,
+                  },
         }),
       });
       const data = await res.json();
@@ -128,114 +220,173 @@ export default function CheckoutClient({
     }
   }
 
-  async function handleDeliverySubmit(e: FormEvent) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/checkout/delivery", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...orderPayload,
-          address,
-          preferredDate,
-          notes,
-          customerName: name,
-          customerEmail: email,
-          customerPhone: phone,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Something went wrong");
-      clearCart();
-      setDeliverySubmitted(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  if (deliverySubmitted) {
-    return (
-      <section className="mx-auto w-full max-w-3xl flex-1 px-6 py-16">
-        <h1 className="font-display text-4xl font-semibold text-maroon">
-          Request sent!
-        </h1>
-        <p className="mt-3 max-w-xl text-maroon/70">
-          We got your delivery request and sent you a confirmation email.
-          We&rsquo;ll follow up shortly with the delivery fee and a payment
-          link.
-        </p>
-        <Link
-          href="/shop"
-          className="mt-6 inline-block rounded-full bg-terracotta px-6 py-3 font-semibold text-background transition-colors hover:bg-rust"
-        >
-          Continue Shopping
-        </Link>
-      </section>
-    );
-  }
-
   return (
     <section className="mx-auto w-full max-w-3xl flex-1 px-6 py-16">
       <h1 className="font-display text-4xl font-semibold text-maroon">
         Checkout
       </h1>
 
-      <div className="mt-6 flex flex-wrap gap-2">
-        {(["event", "house", "delivery"] as Mode[]).map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => setMode(m)}
-            className={`rounded-full border px-5 py-2 text-sm font-semibold transition-colors ${
-              mode === m
-                ? "border-terracotta bg-terracotta text-background"
-                : "border-maroon/30 text-maroon hover:bg-maroon/5"
-            }`}
-          >
-            {m === "event"
-              ? "Pickup at an Event"
-              : m === "house"
-                ? "Pickup at Our Kitchen"
-                : "Delivery"}
-          </button>
-        ))}
-      </div>
-
-      <div className="mt-8 rounded-3xl bg-cream p-6">
-        <div className="flex items-center justify-between text-lg font-semibold text-maroon">
-          <span>Order total</span>
-          <span>{formatPrice(grandTotalCents)}</span>
+      <div className="mt-8">
+        <label className="text-sm font-medium text-maroon/70">
+          How would you like to get your order?
+        </label>
+        <div className="mt-2">
+          <PillGroup
+            options={[
+              { value: "pickup", label: "Pickup" },
+              ...(deliveryZones.length > 0
+                ? [{ value: "delivery" as TopChoice, label: "Delivery" }]
+                : []),
+            ]}
+            value={topChoice}
+            onChange={handleTopChoiceChange}
+          />
         </div>
       </div>
 
-      {mode === "event" && (
-        <form onSubmit={handleEventSubmit} className="mt-8 flex flex-col gap-4">
+      {topChoice === "pickup" && (
+        <div className="mt-4">
+          <label className="text-sm font-medium text-maroon/70">
+            Where would you like to pick up?
+          </label>
+          <div className="mt-2">
+            <PillGroup
+              options={[
+                ...(events.length > 0
+                  ? [{ value: "event" as PickupChoice, label: "At an Event" }]
+                  : []),
+                { value: "kitchen", label: "At Our Kitchen" },
+              ]}
+              value={pickupChoice}
+              onChange={handlePickupChoiceChange}
+            />
+          </div>
+        </div>
+      )}
+
+      {topChoice === "pickup" && pickupChoice === "event" && (
+        <div className="mt-4">
+          <label className="text-sm font-medium text-maroon/70">
+            Pick an event
+          </label>
+          <select
+            value={selectedEventIndex ?? ""}
+            onChange={(e) => setSelectedEventIndex(Number(e.target.value))}
+            required
+            className="mt-1 w-full rounded-xl border border-maroon/20 bg-background px-4 py-3 text-maroon"
+          >
+            <option value="" disabled>
+              Select an event…
+            </option>
+            {events.map((event, index) => (
+              <option key={index} value={index}>
+                {formatEventOptionLabel(event)}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {topChoice === "delivery" && (
+        <div className="mt-4 flex flex-col gap-4">
           <div>
             <label className="text-sm font-medium text-maroon/70">
-              Pick an event
+              ZIP code
             </label>
-            <select
-              value={selectedEventDate}
-              onChange={(e) => setSelectedEventDate(e.target.value)}
+            <input
+              type="text"
+              inputMode="numeric"
+              value={zipCode}
+              onChange={(e) => setZipCode(normalizeZip(e.target.value))}
+              placeholder="11101"
               required
-              className="mt-1 w-full rounded-xl border border-maroon/20 bg-background px-4 py-3 text-maroon"
-            >
-              {events.map((event) => (
-                <option key={event.date} value={event.date}>
-                  {event.venue} —{" "}
-                  {new Date(`${event.date}T00:00:00`).toLocaleDateString(
-                    "en-US",
-                    { weekday: "short", month: "short", day: "numeric" },
+              className="mt-1 w-full max-w-40 rounded-xl border border-maroon/20 bg-background px-4 py-3 text-maroon"
+            />
+            {zipCode.length === 5 &&
+              (matchedZone ? (
+                <p className="mt-2 text-sm text-maroon/70">
+                  {matchedZone.neighborhood}, {matchedZone.borough} — delivery
+                  is{" "}
+                  {matchedZoneFeeCents === 0 ? (
+                    <span className="font-bold text-green-600">Free</span>
+                  ) : (
+                    formatPrice(matchedZoneFeeCents)
                   )}
-                  , {event.time}
-                </option>
+                </p>
+              ) : (
+                <div className="mt-2 flex flex-col gap-2">
+                  <p className="text-sm text-red-600">
+                    Looks like we don&rsquo;t have delivery to your zone yet —
+                    you can choose to pick up or message us.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleTopChoiceChange("pickup")}
+                      className="rounded-full border border-maroon/30 px-4 py-1.5 text-sm font-semibold text-maroon transition-colors hover:bg-maroon/5"
+                    >
+                      Switch to Pickup
+                    </button>
+                    <a
+                      href={whatsAppUrl(
+                        `Hi! I'd like to place a delivery order but I'm not sure you deliver to my ZIP code (${zipCode}). Can you help?`,
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-full border border-maroon/30 px-4 py-1.5 text-sm font-semibold text-maroon transition-colors hover:bg-maroon/5"
+                    >
+                      Message on WhatsApp
+                    </a>
+                  </div>
+                </div>
               ))}
-            </select>
           </div>
+          {matchedZone && (
+            <div>
+              <label className="text-sm font-medium text-maroon/70">
+                Delivery address
+              </label>
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Street address, apt #"
+                required
+                className="mt-1 w-full rounded-xl border border-maroon/20 bg-background px-4 py-3 text-maroon"
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="mt-6 rounded-3xl bg-cream p-6">
+        <div className="flex items-center justify-between text-lg font-semibold text-maroon">
+          <span>Order total</span>
+          <span>{formatPrice(orderTotalCents)}</span>
+        </div>
+        {selection?.kind === "delivery" && (
+          <div className="mt-1 flex items-center justify-between text-sm text-maroon/70">
+            <span>Delivery</span>
+            <span>
+              {deliveryFeeCents === 0 ? (
+                <span className="font-bold text-green-600">Free</span>
+              ) : (
+                formatPrice(deliveryFeeCents)
+              )}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {selection?.kind === "kitchen" && (
+        <p className="mt-8 text-maroon/70">
+          Pick up at our kitchen: <strong>{PICKUP_ADDRESS}</strong>. Pay now,
+          then message us on WhatsApp to schedule a pickup time.
+        </p>
+      )}
+
+      {selection && (
+        <form onSubmit={handlePaidSubmit} className="mt-8 flex flex-col gap-4">
           <ContactFields
             name={name}
             setName={setName}
@@ -251,87 +402,6 @@ export default function CheckoutClient({
             className="mt-2 rounded-full bg-terracotta px-6 py-3 font-semibold text-background transition-colors hover:bg-rust disabled:opacity-50"
           >
             {submitting ? "Redirecting to payment…" : "Pay Now"}
-          </button>
-        </form>
-      )}
-
-      {mode === "house" && (
-        <div className="mt-8 flex flex-col gap-4">
-          <p className="text-maroon/70">
-            Pick up at our kitchen: <strong>{PICKUP_ADDRESS}</strong>. Message
-            us on WhatsApp to arrange a time and pay — we&rsquo;ll confirm
-            details directly with you.
-          </p>
-          <a
-            href={whatsAppUrl(buildWhatsAppMessage())}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => clearCart()}
-            className="inline-block w-fit rounded-full bg-terracotta px-6 py-3 font-semibold text-background transition-colors hover:bg-rust"
-          >
-            Message on WhatsApp
-          </a>
-        </div>
-      )}
-
-      {mode === "delivery" && (
-        <form
-          onSubmit={handleDeliverySubmit}
-          className="mt-8 flex flex-col gap-4"
-        >
-          <ContactFields
-            name={name}
-            setName={setName}
-            email={email}
-            setEmail={setEmail}
-            phone={phone}
-            setPhone={setPhone}
-          />
-          <div>
-            <label className="text-sm font-medium text-maroon/70">
-              Delivery address
-            </label>
-            <input
-              type="text"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              required
-              className="mt-1 w-full rounded-xl border border-maroon/20 bg-background px-4 py-3 text-maroon"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-maroon/70">
-              Preferred date
-            </label>
-            <input
-              type="date"
-              value={preferredDate}
-              onChange={(e) => setPreferredDate(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-maroon/20 bg-background px-4 py-3 text-maroon"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-maroon/70">
-              Notes (optional)
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              className="mt-1 w-full rounded-xl border border-maroon/20 bg-background px-4 py-3 text-maroon"
-            />
-          </div>
-          <p className="text-sm text-maroon/60">
-            No payment yet — we&rsquo;ll follow up with the delivery fee and a
-            payment link once we&rsquo;ve confirmed your order.
-          </p>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <button
-            type="submit"
-            disabled={submitting}
-            className="mt-2 rounded-full bg-terracotta px-6 py-3 font-semibold text-background transition-colors hover:bg-rust disabled:opacity-50"
-          >
-            {submitting ? "Sending…" : "Request Delivery"}
           </button>
         </form>
       )}

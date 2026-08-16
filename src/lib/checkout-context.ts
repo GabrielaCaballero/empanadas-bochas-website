@@ -1,16 +1,28 @@
 // Square redirects the buyer back to our site after payment with only an
 // order ID — there's no database to look up the rest of the order context
-// (customer contact info, which event they picked) by, so it's round-tripped
-// through the redirect URL itself as a base64url-encoded blob instead.
+// (customer contact info, which fulfillment they picked) by, so it's
+// round-tripped through the redirect URL itself as a base64url-encoded blob.
 export type CheckoutContext = {
   name: string;
   email: string;
   phone: string;
-  venue: string;
-  eventDate: string;
-  eventTime: string;
-  eventAddress: string;
-  totalCents: number;
+  totalCents: number; // final charged total, including delivery fee if any
+  fulfillment:
+    | {
+        kind: "event";
+        venue: string;
+        eventDate: string;
+        eventTime: string;
+        eventAddress: string;
+      }
+    | { kind: "kitchen" }
+    | {
+        kind: "delivery";
+        neighborhood: string;
+        borough: string;
+        address: string;
+        feeCents: number;
+      };
 };
 
 export function encodeCheckoutContext(ctx: CheckoutContext): string {
