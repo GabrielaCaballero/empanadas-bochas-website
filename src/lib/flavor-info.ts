@@ -64,7 +64,7 @@ export const flavorInfo: FlavorInfo[] = [
   },
   {
     name: "Cheeseburger",
-    image: null,
+    image: "/menu/cheeseburger.webp",
     description:
       "Juicy seasoned beef, crispy bacon, and melted cheddar cheese, all wrapped in our handmade dough and baked to perfection.",
     ingredients:
