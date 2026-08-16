@@ -6,7 +6,7 @@ import { useCart } from "@/lib/cart-context";
 import type { EventEntry } from "@/lib/events";
 import { computeDeliveryFeeCents, type DeliveryZone } from "@/lib/delivery-pricing";
 import { formatPrice } from "@/lib/square";
-import { PICKUP_ADDRESS } from "@/lib/business-info";
+import { whatsAppUrl, PICKUP_ADDRESS } from "@/lib/business-info";
 
 type TopChoice = "pickup" | "delivery";
 type PickupChoice = "event" | "kitchen";
@@ -288,19 +288,6 @@ export default function CheckoutClient({
         <div className="mt-4 flex flex-col gap-4">
           <div>
             <label className="text-sm font-medium text-maroon/70">
-              Delivery address
-            </label>
-            <input
-              type="text"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Street address, apt #"
-              required
-              className="mt-1 w-full rounded-xl border border-maroon/20 bg-background px-4 py-3 text-maroon"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-maroon/70">
               ZIP code
             </label>
             <input
@@ -326,11 +313,48 @@ export default function CheckoutClient({
                   })()}
                 </p>
               ) : (
-                <p className="mt-2 text-sm text-red-600">
-                  We don&rsquo;t currently deliver to that ZIP code.
-                </p>
+                <div className="mt-2 flex flex-col gap-2">
+                  <p className="text-sm text-red-600">
+                    Looks like we don&rsquo;t have delivery to your zone yet —
+                    you can choose to pick up or message us.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleTopChoiceChange("pickup")}
+                      className="rounded-full border border-maroon/30 px-4 py-1.5 text-sm font-semibold text-maroon transition-colors hover:bg-maroon/5"
+                    >
+                      Switch to Pickup
+                    </button>
+                    <a
+                      href={whatsAppUrl(
+                        `Hi! I'd like to place a delivery order but I'm not sure you deliver to my ZIP code (${zipCode}). Can you help?`,
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-full border border-maroon/30 px-4 py-1.5 text-sm font-semibold text-maroon transition-colors hover:bg-maroon/5"
+                    >
+                      Message on WhatsApp
+                    </a>
+                  </div>
+                </div>
               ))}
           </div>
+          {matchedZone && (
+            <div>
+              <label className="text-sm font-medium text-maroon/70">
+                Delivery address
+              </label>
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Street address, apt #"
+                required
+                className="mt-1 w-full rounded-xl border border-maroon/20 bg-background px-4 py-3 text-maroon"
+              />
+            </div>
+          )}
         </div>
       )}
 
