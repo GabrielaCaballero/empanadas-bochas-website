@@ -2,7 +2,11 @@ import { redirect } from "next/navigation";
 import { getRecentOrders, findRecentMatchingOrder, formatPrice } from "@/lib/square";
 import { decodeCheckoutContext } from "@/lib/checkout-context";
 import { sendEmail, BUSINESS_EMAIL } from "@/lib/email";
-import { buildSquareOrderSummaryHtml } from "@/lib/order-summary";
+import {
+  buildEmailShellHtml,
+  buildInfoCardHtml,
+  buildOrderItemsTableHtml,
+} from "@/lib/email-template";
 import { buildOrderReceiptPdf } from "@/lib/order-pdf";
 import { PICKUP_ADDRESS } from "@/lib/business-info";
 import CheckoutSuccessClient from "@/components/CheckoutSuccessClient";
@@ -30,25 +34,52 @@ export default async function CheckoutSuccessPage({
   if (!order) redirect("/cart?error=order");
 
   const fulfillment = ctx.fulfillment;
-  let pickupHtml: string;
+  let pickupCardHtml: string;
   let emailSubject: string;
   if (fulfillment.kind === "event") {
-    pickupHtml = `<p><strong>Pickup:</strong> ${fulfillment.venue}, ${fulfillment.eventDate} (${fulfillment.eventTime})<br/>${fulfillment.eventAddress}</p>`;
+    pickupCardHtml = buildInfoCardHtml({
+      label: "Pickup",
+      title: fulfillment.venue,
+      lines: [
+        `${fulfillment.eventDate} &middot; ${fulfillment.eventTime}`,
+        fulfillment.eventAddress,
+      ],
+    });
     emailSubject = `New pickup order — ${fulfillment.venue}, ${fulfillment.eventDate}`;
   } else if (fulfillment.kind === "kitchen") {
-    pickupHtml = `<p><strong>Pickup:</strong> Our Kitchen, ${PICKUP_ADDRESS}</p>`;
+    pickupCardHtml = buildInfoCardHtml({
+      label: "Pickup",
+      title: "Our Kitchen",
+      lines: [PICKUP_ADDRESS],
+    });
     emailSubject = `New kitchen pickup order — ${ctx.name}`;
   } else {
-    pickupHtml = `<p><strong>Delivery to:</strong> ${fulfillment.address}<br/>${fulfillment.neighborhood}, ${fulfillment.borough}<br/>Delivery fee: ${fulfillment.feeCents === 0 ? "Free" : formatPrice(fulfillment.feeCents)}</p>`;
+    pickupCardHtml = buildInfoCardHtml({
+      label: "Delivery",
+      title: fulfillment.address,
+      lines: [
+        `${fulfillment.neighborhood}, ${fulfillment.borough}`,
+        `Delivery fee: ${fulfillment.feeCents === 0 ? "Free" : formatPrice(fulfillment.feeCents)}`,
+      ],
+    });
     emailSubject = `New delivery order — ${fulfillment.neighborhood}, ${fulfillment.borough}`;
   }
-  const orderSummaryHtml = buildSquareOrderSummaryHtml(order);
+  const orderItemsTableHtml = buildOrderItemsTableHtml(order);
 
   try {
+    const businessBodyHtml = `
+      ${pickupCardHtml}
+      <div style="margin-bottom:20px;font-size:14px;color:#3C1214;line-height:1.6;">
+        <strong>Name:</strong> ${ctx.name}<br/>
+        <strong>Email:</strong> ${ctx.email}<br/>
+        <strong>Phone:</strong> ${ctx.phone}
+      </div>
+      ${orderItemsTableHtml}
+    `;
     await sendEmail({
       to: BUSINESS_EMAIL,
       subject: emailSubject,
-      html: `${pickupHtml}<p>Name: ${ctx.name}<br/>Email: ${ctx.email}<br/>Phone: ${ctx.phone}</p>${orderSummaryHtml}`,
+      html: buildEmailShellHtml({ heading: "New order", bodyHtml: businessBodyHtml }),
       idempotencyKey: `business-${order.id}`,
     });
   } catch (err) {
@@ -61,10 +92,21 @@ export default async function CheckoutSuccessPage({
       customerName: ctx.name,
       fulfillment,
     });
+    const customerBodyHtml = `
+      <p style="margin:0 0 20px;font-size:15px;color:#5c4a3d;line-height:1.6;">
+        Thanks for your order, ${ctx.name}! A detailed receipt is attached as a PDF.
+      </p>
+      ${pickupCardHtml}
+      ${orderItemsTableHtml}
+    `;
     await sendEmail({
       to: ctx.email,
       subject: "Your Empanadas Bochas order",
-      html: `<p>Thanks for your order, ${ctx.name}! Your receipt is attached.</p>${pickupHtml}`,
+      html: buildEmailShellHtml({
+        heading: "Order confirmed! 🎉",
+        bodyHtml: customerBodyHtml,
+        showFoodPhoto: true,
+      }),
       idempotencyKey: `customer-${order.id}`,
       attachments: [{ filename: "receipt.pdf", content: receiptPdf }],
     });

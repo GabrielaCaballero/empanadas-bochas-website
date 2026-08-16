@@ -75,7 +75,24 @@ export async function buildOrderReceiptPdf({
 
   draw("Order summary", { size: 10, useBold: true, color: GRAY, gap: 18 });
   for (const item of order.lineItems) {
-    draw(`${item.quantity}x ${item.name}`, { size: 11, gap: item.note ? 14 : 18 });
+    const priceLabel =
+      item.totalCents === 0 ? "Free" : (formatPrice(item.totalCents) ?? "$0.00");
+    const priceWidth = font.widthOfTextAtSize(priceLabel, 11);
+    page.drawText(`${item.quantity}x ${item.name}`, {
+      x: left,
+      y,
+      size: 11,
+      font,
+      color: rgb(0, 0, 0),
+    });
+    page.drawText(priceLabel, {
+      x: PAGE_WIDTH - MARGIN - priceWidth,
+      y,
+      size: 11,
+      font,
+      color: rgb(0, 0, 0),
+    });
+    y -= item.note ? 14 : 18;
     if (item.note) {
       draw(item.note, { size: 10, color: GRAY, gap: 18 });
     }

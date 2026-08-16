@@ -25,7 +25,12 @@ export default function CheckoutSuccessClient({
   customerName: string;
   customerEmail: string;
   fulfillment: CheckoutContext["fulfillment"];
-  lineItems: { name: string; quantity: string; note?: string }[];
+  lineItems: {
+    name: string;
+    quantity: string;
+    note?: string;
+    totalCents: number;
+  }[];
   totalCents: number;
 }) {
   const { clearCart } = useCart();
@@ -112,11 +117,16 @@ export default function CheckoutSuccessClient({
 
       <div className="mt-4 rounded-3xl bg-cream p-6">
         <p className="text-sm font-medium text-maroon/60">Order summary</p>
-        <ul className="mt-2 flex flex-col gap-1 text-sm text-maroon/80">
+        <ul className="mt-2 flex flex-col gap-1.5 text-sm text-maroon/80">
           {lineItems.map((item, i) => (
-            <li key={i}>
-              {item.quantity}x {item.name}
-              {item.note ? ` (${item.note})` : ""}
+            <li key={i} className="flex items-baseline justify-between gap-3">
+              <span>
+                {item.quantity}x {item.name}
+                {item.note ? ` (${item.note})` : ""}
+              </span>
+              <span className="shrink-0 text-maroon/60">
+                {item.totalCents === 0 ? "Free" : formatPrice(item.totalCents)}
+              </span>
             </li>
           ))}
         </ul>
