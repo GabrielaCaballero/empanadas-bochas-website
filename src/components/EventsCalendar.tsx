@@ -11,8 +11,14 @@ import { buildGoogleCalendarUrl, downloadIcs } from "@/lib/calendar-links";
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
 function boroughOf(address: string) {
-  const parts = address.split(",");
-  return parts.length > 1 ? parts[parts.length - 1].trim() : address.trim();
+  // Trims and drops empty segments before taking the last one, since a
+  // trailing comma in the sheet's Address column (e.g. "52 34th St,
+  // Brooklyn, ") would otherwise yield an empty-string "borough".
+  const parts = address
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+  return parts.length > 1 ? parts[parts.length - 1] : (parts[0] ?? "");
 }
 
 function CalendarPlusIcon() {
@@ -47,7 +53,9 @@ export default function EventsCalendar({ events }: { events: EventEntry[] }) {
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
 
-  const boroughs = Array.from(new Set(events.map((e) => boroughOf(e.address)))).sort();
+  const boroughs = Array.from(
+    new Set(events.map((e) => boroughOf(e.address)).filter(Boolean)),
+  ).sort();
   const [locationFilter, setLocationFilter] = useState<string>("All");
 
   function matchesFilters(event: EventEntry) {
