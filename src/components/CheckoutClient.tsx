@@ -10,7 +10,7 @@ import {
   type DeliveryZone,
 } from "@/lib/delivery-pricing";
 import { formatPrice } from "@/lib/square";
-import { whatsAppUrl, PICKUP_ADDRESS } from "@/lib/business-info";
+import { PICKUP_ADDRESS } from "@/lib/business-info";
 
 type TopChoice = "pickup" | "delivery";
 type PickupChoice = "event" | "kitchen";
@@ -76,8 +76,7 @@ export default function CheckoutClient({
   events: EventEntry[];
   deliveryZones: DeliveryZone[];
 }) {
-  const { items, sauces, totalCents, freeSauceAllotment, clearCart } =
-    useCart();
+  const { items, sauces, totalCents, freeSauceAllotment } = useCart();
 
   const [topChoice, setTopChoice] = useState<TopChoice | null>(null);
   const [pickupChoice, setPickupChoice] = useState<PickupChoice | null>(null);
@@ -193,32 +192,9 @@ export default function CheckoutClient({
     );
   }
 
-  function buildWhatsAppMessage() {
-    const lines = items.map((item) => {
-      const flavorNote = item.flavors
-        ? " (" +
-          Object.entries(item.flavors)
-            .filter(([, count]) => count > 0)
-            .map(([flavor, count]) => `${count}x ${flavor}`)
-            .join(", ") +
-          ")"
-        : "";
-      return `${item.quantity}x ${item.name}${flavorNote}`;
-    });
-    if (totalSaucesSelected > 0) {
-      lines.push(
-        Object.entries(sauces)
-          .filter(([, count]) => count > 0)
-          .map(([flavor, count]) => `${count}x Sauce - ${flavor}`)
-          .join(", "),
-      );
-    }
-    return `Hi! I'd like to arrange pickup at your kitchen for:\n${lines.join("\n")}\nTotal: ${formatPrice(grandTotalCents)}`;
-  }
-
   async function handlePaidSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!selection || selection.kind === "kitchen") return;
+    if (!selection) return;
     if (selection.kind === "delivery" && !address) return;
 
     setSubmitting(true);
@@ -243,7 +219,9 @@ export default function CheckoutClient({
                   eventDate: selection.event.date,
                   venue: selection.event.venue,
                 }
-              : { kind: "delivery", zoneId: selection.zone.id, address },
+              : selection.kind === "kitchen"
+                ? { kind: "kitchen" }
+                : { kind: "delivery", zoneId: selection.zone.id, address },
         }),
       });
       const data = await res.json();
@@ -384,25 +362,13 @@ export default function CheckoutClient({
       </div>
 
       {selection?.kind === "kitchen" && (
-        <div className="mt-8 flex flex-col gap-4">
-          <p className="text-maroon/70">
-            Pick up at our kitchen: <strong>{PICKUP_ADDRESS}</strong>. Message
-            us on WhatsApp to arrange a time and pay — we&rsquo;ll confirm
-            details directly with you.
-          </p>
-          <a
-            href={whatsAppUrl(buildWhatsAppMessage())}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => clearCart()}
-            className="inline-block w-fit rounded-full bg-terracotta px-6 py-3 font-semibold text-background transition-colors hover:bg-rust"
-          >
-            Message on WhatsApp
-          </a>
-        </div>
+        <p className="mt-8 text-maroon/70">
+          Pick up at our kitchen: <strong>{PICKUP_ADDRESS}</strong>. Pay now,
+          then message us on WhatsApp to schedule a pickup time.
+        </p>
       )}
 
-      {(selection?.kind === "event" || selection?.kind === "delivery") && (
+      {selection && (
         <form onSubmit={handlePaidSubmit} className="mt-8 flex flex-col gap-4">
           <ContactFields
             name={name}

@@ -4,10 +4,12 @@ import { buildSquareLineItems } from "@/lib/order-summary";
 import { getUpcomingEvents } from "@/lib/events";
 import { getDeliveryZones, computeDeliveryFeeCents } from "@/lib/delivery-pricing";
 import { encodeCheckoutContext, type CheckoutContext } from "@/lib/checkout-context";
+import { PICKUP_ADDRESS } from "@/lib/business-info";
 import type { CartLineItem } from "@/lib/cart-context";
 
 type Fulfillment =
   | { kind: "event"; eventDate: string; venue: string }
+  | { kind: "kitchen" }
   | { kind: "delivery"; zoneId: string; address: string };
 
 type RequestBody = {
@@ -82,6 +84,14 @@ export async function POST(request: Request) {
       eventTime: event.time,
       eventAddress: event.address,
     };
+  } else if (fulfillment.kind === "kitchen") {
+    lineItems.push({
+      name: `Pickup: Our Kitchen, ${PICKUP_ADDRESS}`,
+      quantity: 1,
+      unitPriceCents: 0,
+    });
+
+    ctxFulfillment = { kind: "kitchen" };
   } else {
     if (!fulfillment.address) {
       return NextResponse.json(

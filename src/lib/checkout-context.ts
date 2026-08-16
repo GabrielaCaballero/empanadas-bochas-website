@@ -15,6 +15,7 @@ export type CheckoutContext = {
         eventTime: string;
         eventAddress: string;
       }
+    | { kind: "kitchen" }
     | {
         kind: "delivery";
         neighborhood: string;

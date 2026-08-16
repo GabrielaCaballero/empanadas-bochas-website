@@ -4,6 +4,7 @@ import { decodeCheckoutContext } from "@/lib/checkout-context";
 import { sendEmail, BUSINESS_EMAIL } from "@/lib/email";
 import { buildSquareOrderSummaryHtml } from "@/lib/order-summary";
 import { buildOrderReceiptPdf } from "@/lib/order-pdf";
+import { PICKUP_ADDRESS } from "@/lib/business-info";
 import CheckoutSuccessClient from "@/components/CheckoutSuccessClient";
 
 const MATCH_WINDOW_MS = 30 * 60 * 1000;
@@ -29,14 +30,18 @@ export default async function CheckoutSuccessPage({
   if (!order) redirect("/cart?error=order");
 
   const fulfillment = ctx.fulfillment;
-  const pickupHtml =
-    fulfillment.kind === "event"
-      ? `<p><strong>Pickup:</strong> ${fulfillment.venue}, ${fulfillment.eventDate} (${fulfillment.eventTime})<br/>${fulfillment.eventAddress}</p>`
-      : `<p><strong>Delivery to:</strong> ${fulfillment.address}<br/>${fulfillment.neighborhood}, ${fulfillment.borough}<br/>Delivery fee: ${fulfillment.feeCents === 0 ? "Free" : formatPrice(fulfillment.feeCents)}</p>`;
-  const emailSubject =
-    fulfillment.kind === "event"
-      ? `New pickup order — ${fulfillment.venue}, ${fulfillment.eventDate}`
-      : `New delivery order — ${fulfillment.neighborhood}, ${fulfillment.borough}`;
+  let pickupHtml: string;
+  let emailSubject: string;
+  if (fulfillment.kind === "event") {
+    pickupHtml = `<p><strong>Pickup:</strong> ${fulfillment.venue}, ${fulfillment.eventDate} (${fulfillment.eventTime})<br/>${fulfillment.eventAddress}</p>`;
+    emailSubject = `New pickup order — ${fulfillment.venue}, ${fulfillment.eventDate}`;
+  } else if (fulfillment.kind === "kitchen") {
+    pickupHtml = `<p><strong>Pickup:</strong> Our Kitchen, ${PICKUP_ADDRESS}</p>`;
+    emailSubject = `New kitchen pickup order — ${ctx.name}`;
+  } else {
+    pickupHtml = `<p><strong>Delivery to:</strong> ${fulfillment.address}<br/>${fulfillment.neighborhood}, ${fulfillment.borough}<br/>Delivery fee: ${fulfillment.feeCents === 0 ? "Free" : formatPrice(fulfillment.feeCents)}</p>`;
+    emailSubject = `New delivery order — ${fulfillment.neighborhood}, ${fulfillment.borough}`;
+  }
   const orderSummaryHtml = buildSquareOrderSummaryHtml(order);
 
   try {

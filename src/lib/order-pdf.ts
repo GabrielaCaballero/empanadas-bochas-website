@@ -1,6 +1,7 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { formatPrice, type OrderSummary } from "./square";
 import type { CheckoutContext } from "./checkout-context";
+import { PICKUP_ADDRESS } from "./business-info";
 
 const PAGE_WIDTH = 396; // 5.5in at 72dpi — a compact receipt, not a full page
 const MARGIN = 36;
@@ -54,6 +55,10 @@ export async function buildOrderReceiptPdf({
       gap: 14,
     });
     draw(fulfillment.eventAddress, { size: 11, color: GRAY, gap: 22 });
+  } else if (fulfillment.kind === "kitchen") {
+    draw("Pickup", { size: 10, useBold: true, color: GRAY, gap: 14 });
+    draw("Our Kitchen", { size: 12, useBold: true, gap: 16 });
+    draw(PICKUP_ADDRESS, { size: 11, color: GRAY, gap: 22 });
   } else {
     draw("Delivery", { size: 10, useBold: true, color: GRAY, gap: 14 });
     draw(fulfillment.address, { size: 12, useBold: true, gap: 16 });
