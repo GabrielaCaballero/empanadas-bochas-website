@@ -39,12 +39,13 @@ export default function EventsCalendar({ events }: { events: EventEntry[] }) {
   const [selected, setSelected] = useState<EventEntry | null>(
     upcoming[0] ?? events[0] ?? null,
   );
-  const [viewYear, setViewYear] = useState(
-    selected ? Number(selected.date.slice(0, 4)) : now.getFullYear(),
-  );
-  const [viewMonth, setViewMonth] = useState(
-    selected ? Number(selected.date.slice(5, 7)) - 1 : now.getMonth(),
-  );
+  // Always starts on the current real month, regardless of where the next
+  // event falls — if there's a gap (e.g. this month's stops already
+  // happened and the next one is two months out), the calendar shouldn't
+  // jump straight to that future month; people can navigate forward
+  // themselves via the arrows.
+  const [viewYear, setViewYear] = useState(now.getFullYear());
+  const [viewMonth, setViewMonth] = useState(now.getMonth());
 
   const boroughs = Array.from(new Set(events.map((e) => boroughOf(e.address)))).sort();
   const [locationFilter, setLocationFilter] = useState<string>("All");
@@ -73,6 +74,12 @@ export default function EventsCalendar({ events }: { events: EventEntry[] }) {
     ...Array(startWeekday).fill(null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
   ];
+
+  const monthHasEvents = cells.some((day) => {
+    if (day === null) return false;
+    const rawEvent = eventForDay(day);
+    return rawEvent && matchesFilters(rawEvent);
+  });
 
   return (
     <div className="mt-10">
@@ -213,6 +220,13 @@ export default function EventsCalendar({ events }: { events: EventEntry[] }) {
               );
             })}
           </div>
+
+          {!monthHasEvents && (
+            <p className="mt-4 text-sm text-maroon/60">
+              No stops posted for {theme.label} {viewYear} yet — check
+              another month or come back soon.
+            </p>
+          )}
 
           <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-maroon/60">
             <span className="flex items-center gap-1.5">
