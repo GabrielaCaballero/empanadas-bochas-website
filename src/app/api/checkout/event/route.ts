@@ -79,7 +79,7 @@ export async function POST(request: Request) {
 
   let paymentLink;
   try {
-    paymentLink = await createPaymentLink(lineItems, redirectUrl);
+    paymentLink = await createPaymentLink(lineItems, redirectUrl, customerEmail);
   } catch (err) {
     console.error("Square payment link creation failed", err);
     return NextResponse.json(
