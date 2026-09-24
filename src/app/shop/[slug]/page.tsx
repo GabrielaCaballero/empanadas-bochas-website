@@ -55,8 +55,8 @@ export default async function ProductPage({
           )}
           {item.requiredFlavorCount === 12 && (
             <p className="mt-2 text-sm text-maroon/60">
-              This box includes 2 empanadas on us — choose all 12 flavors
-              below.
+              You get 14 empanadas for the price of 12 — choose all 14
+              flavors below.
             </p>
           )}
 
