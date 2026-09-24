@@ -77,11 +77,11 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
       {hasFlavors ? (
         <div className="mt-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium text-maroon/60">
+            <h2 className="flex items-center gap-2 text-sm font-medium text-maroon/60">
               Choose your flavors
               {isBoxOf12 && (
-                <span className="ml-1.5 font-semibold text-terracotta">
-                  — 2 free!
+                <span className="rounded-full bg-terracotta px-2 py-0.5 text-xs font-bold tracking-wide text-background">
+                  🎉 2 FREE
                 </span>
               )}
             </h2>

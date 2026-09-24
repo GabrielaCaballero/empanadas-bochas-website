@@ -18,9 +18,15 @@ export default async function ShopPage() {
         {items.map((item) => {
           const price = formatPrice(item.variations[0]?.priceCents ?? null);
 
+          const isBoxOf12 = item.requiredFlavorCount === 12;
+
           return (
             <Link key={item.id} href={`/shop/${item.id}`} className="group block">
-              <div className="relative aspect-square overflow-hidden rounded-3xl bg-cream shadow-sm transition-shadow duration-300 group-hover:shadow-xl">
+              <div
+                className={`relative aspect-square overflow-hidden rounded-3xl bg-cream shadow-sm transition-shadow duration-300 group-hover:shadow-xl ${
+                  isBoxOf12 ? "ring-2 ring-terracotta ring-offset-2 ring-offset-background" : ""
+                }`}
+              >
                 {item.imageUrl && (
                   <Image
                     src={item.imageUrl}
@@ -30,12 +36,22 @@ export default async function ShopPage() {
                     sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                   />
                 )}
+                {isBoxOf12 && (
+                  <span className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-terracotta px-3 py-1.5 text-xs font-bold tracking-wide text-background shadow-lg">
+                    🎉 2 FREE
+                  </span>
+                )}
               </div>
               <h2 className="mt-4 font-display text-lg font-semibold text-maroon">
                 {item.name.trim()}
               </h2>
               <p className="mt-0.5 text-terracotta font-medium">
                 {price ?? "Ask for pricing"}
+                {isBoxOf12 && (
+                  <span className="ml-1.5 font-semibold text-maroon/60">
+                    · 14 empanadas, 2 free!
+                  </span>
+                )}
               </p>
             </Link>
           );
