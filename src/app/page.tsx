@@ -6,11 +6,11 @@ import Testimonials from "@/components/Testimonials";
 
 const photos = [
   {
-    src: "/photos/empanada-3.png",
+    src: "/photos/empanada-3.webp",
     alt: "Empanadas served with dipping sauce",
   },
   {
-    src: "/photos/empanada-1.png",
+    src: "/photos/empanada-1.webp",
     alt: "Hands holding a fresh empanada",
   },
 ];
@@ -20,7 +20,7 @@ export default function Home() {
     <div className="flex flex-1 flex-col">
       <section className="relative flex h-[85vh] min-h-[560px] w-full items-center justify-center overflow-hidden">
         <Image
-          src="/photos/empanada-2.png"
+          src="/photos/empanada-2.webp"
           alt="Box of Empanadas Bochas empanadas"
           fill
           priority
@@ -81,7 +81,7 @@ export default function Home() {
           <div className="grid items-center gap-10 sm:grid-cols-2">
             <div className="relative mx-auto aspect-4/5 w-full max-w-sm -rotate-2 overflow-hidden rounded-3xl shadow-xl sm:mx-0">
               <Image
-                src="/photos/empanada-4.png"
+                src="/photos/empanada-4.webp"
                 alt="Trays of freshly baked empanadas"
                 fill
                 className="object-cover"

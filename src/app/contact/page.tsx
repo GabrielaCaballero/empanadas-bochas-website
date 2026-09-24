@@ -93,7 +93,7 @@ export default function ContactPage() {
 
         <div className="pointer-events-none absolute right-6 bottom-8 h-20 w-20 rotate-6 overflow-hidden rounded-full shadow-2xl ring-4 ring-cream/30 sm:right-10 sm:bottom-10 sm:h-28 sm:w-28">
           <Image
-            src="/photos/empanada-5.png"
+            src="/photos/empanada-5.webp"
             alt=""
             fill
             className="object-cover"
