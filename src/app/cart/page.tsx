@@ -39,6 +39,7 @@ export default async function CartPage() {
   return (
     <Suspense>
       <CartClient
+        sauceItemId={sauceItem?.id ?? null}
         sauceVariations={sauceVariations}
         productsById={productsById}
         suggestedProduct={suggestedProduct}

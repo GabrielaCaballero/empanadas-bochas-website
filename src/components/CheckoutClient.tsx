@@ -62,15 +62,13 @@ function PillGroup<T extends string>({
 }
 
 export default function CheckoutClient({
-  saucePriceCents,
   events,
   deliveryZones,
 }: {
-  saucePriceCents: number;
   events: EventEntry[];
   deliveryZones: DeliveryZone[];
 }) {
-  const { items, sauces, totalCents, freeSauceAllotment } = useCart();
+  const { items, totalCents } = useCart();
 
   const [topChoice, setTopChoice] = useState<TopChoice | null>(null);
   const [pickupChoice, setPickupChoice] = useState<PickupChoice | null>(null);
@@ -117,8 +115,10 @@ export default function CheckoutClient({
     setSelectedEventIndex(null);
   }
 
-  // Sauces are a free bundled perk capped at freeSauceAllotment (see
-  // cart-context.tsx), enforced on the cart page — never priced here.
+  // Sauces (free, per-box, and any extras bought directly from the cart)
+  // are already folded into each cart item's own price — see
+  // cart-context.tsx and CartClient — so there's no separate sauce math
+  // here.
   const grandTotalCents = totalCents;
 
   // Looked up live as the customer types their ZIP — a zone's postalCodes
@@ -186,9 +186,6 @@ export default function CheckoutClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           items,
-          sauces,
-          freeSauceAllotment,
-          saucePriceCents,
           totalCents: grandTotalCents,
           customerName: name,
           customerEmail: email,

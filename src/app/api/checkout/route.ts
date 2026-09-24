@@ -14,9 +14,6 @@ type Fulfillment =
 
 type RequestBody = {
   items: CartLineItem[];
-  sauces: Record<string, number>;
-  freeSauceAllotment: number;
-  saucePriceCents: number;
   totalCents: number; // grand total BEFORE any delivery fee
   customerName: string;
   customerEmail: string;
@@ -28,9 +25,6 @@ export async function POST(request: Request) {
   const body: RequestBody = await request.json();
   const {
     items,
-    sauces,
-    freeSauceAllotment,
-    saucePriceCents,
     totalCents,
     customerName,
     customerEmail,
@@ -48,12 +42,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const lineItems = buildSquareLineItems(
-    items,
-    sauces,
-    freeSauceAllotment,
-    saucePriceCents,
-  );
+  const lineItems = buildSquareLineItems(items);
 
   let ctxFulfillment: CheckoutContext["fulfillment"];
   let finalTotalCents = totalCents;
