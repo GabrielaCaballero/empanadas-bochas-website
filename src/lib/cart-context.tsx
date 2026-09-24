@@ -113,7 +113,44 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!i.flavors) return sum;
     return sum + Object.values(i.flavors).reduce((a, b) => a + b, 0);
   }, 0);
-  const freeSauceAllotment = Math.floor(totalEmpanadaCount / 3);
+  // Sauces are a bundled perk, not a separately priced addon — this is both
+  // the free amount AND the hard cap on how many can be selected at each
+  // tier (any order still gets to pick one, even below the first tier).
+  const freeSauceAllotment =
+    totalEmpanadaCount >= 12
+      ? 6
+      : totalEmpanadaCount >= 6
+        ? 4
+        : totalEmpanadaCount >= 3
+          ? 2
+          : totalEmpanadaCount >= 1
+            ? 1
+            : 0;
+
+  // A sauce selection made at a higher tier (e.g. 6 sauces with 12+
+  // empanadas) would otherwise stick around after items are removed and the
+  // allotment drops — since sauces are meant to be a capped free perk, not a
+  // paid addon, that stale over-allotment selection needs trimming back down
+  // rather than being left to slip through as extra (and, without this,
+  // implicitly-paid) sauces at checkout. Computed as derived state each
+  // render (not corrected via an effect) so it's never a render behind and
+  // never risks a setState-driven cascade — `rawSauces` is what's actually
+  // stored/persisted, `sauces` below is always the clamped view of it.
+  const rawSauceTotal = Object.values(sauces).reduce((a, b) => a + b, 0);
+  const clampedSauces =
+    rawSauceTotal <= freeSauceAllotment
+      ? sauces
+      : (() => {
+          let excess = rawSauceTotal - freeSauceAllotment;
+          const next = { ...sauces };
+          for (const key of Object.keys(next)) {
+            if (excess <= 0) break;
+            const take = Math.min(next[key], excess);
+            next[key] -= take;
+            excess -= take;
+          }
+          return next;
+        })();
 
   return (
     <CartContext.Provider
@@ -125,7 +162,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         clearCart,
         totalCents,
         totalCount,
-        sauces,
+        sauces: clampedSauces,
         setSauceCount,
         totalEmpanadaCount,
         freeSauceAllotment,

@@ -115,8 +115,8 @@ export default function Home() {
             </div>
             <div className="relative order-1 mx-auto aspect-4/5 w-full max-w-sm rotate-2 overflow-hidden rounded-3xl shadow-xl sm:order-2 sm:mx-0">
               <Image
-                src="/photos/empanada-5.png"
-                alt="Cross-section of four empanada flavors"
+                src="/photos/empanada-stack-vertical.webp"
+                alt="Stack of empanada halves showing five different flavors"
                 fill
                 className="object-cover"
                 sizes="(min-width: 640px) 400px, 100vw"

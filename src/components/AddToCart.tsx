@@ -70,6 +70,11 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-medium text-maroon/60">
               Choose your flavors
+              {required === 12 && (
+                <span className="ml-1.5 font-semibold text-terracotta">
+                  — 2 free!
+                </span>
+              )}
             </h2>
             <span className="text-sm font-semibold text-maroon">
               {totalFlavorsSelected}/{required}

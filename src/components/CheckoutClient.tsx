@@ -117,9 +117,9 @@ export default function CheckoutClient({
     setSelectedEventIndex(null);
   }
 
-  const totalSaucesSelected = Object.values(sauces).reduce((a, b) => a + b, 0);
-  const paidSauces = Math.max(0, totalSaucesSelected - freeSauceAllotment);
-  const grandTotalCents = totalCents + paidSauces * saucePriceCents;
+  // Sauces are a free bundled perk capped at freeSauceAllotment (see
+  // cart-context.tsx), enforced on the cart page — never priced here.
+  const grandTotalCents = totalCents;
 
   // Looked up live as the customer types their ZIP — a zone's postalCodes
   // list is the same data the price picker used to make them choose from
