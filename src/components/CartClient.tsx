@@ -3,7 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCart } from "@/lib/cart-context";
+import {
+  useCart,
+  itemSauceAllotment,
+  type CartLineItem,
+} from "@/lib/cart-context";
 import { formatPrice } from "@/lib/square";
 import { whatsAppUrl } from "@/lib/business-info";
 
@@ -59,31 +63,124 @@ function Thumbnail({
   );
 }
 
+// The free sauces that came bundled with THIS box, grouped and picked right
+// underneath it — each box carries its own allotment (see
+// itemSauceAllotment in cart-context.tsx) instead of one pooled total for
+// the whole cart.
+function ItemSauces({
+  item,
+  sauceVariations,
+  setItemSauceCount,
+}: {
+  item: CartLineItem;
+  sauceVariations: SauceVariation[];
+  setItemSauceCount: (id: string, sauceName: string, count: number) => void;
+}) {
+  const allotment = itemSauceAllotment(item);
+  if (allotment <= 0 || sauceVariations.length === 0) return null;
+
+  const itemSauceCounts = item.sauces ?? {};
+  const totalSelected = Object.values(itemSauceCounts).reduce(
+    (a, b) => a + b,
+    0,
+  );
+  const capReached = totalSelected >= allotment;
+
+  return (
+    <div className="rounded-2xl bg-background/70 p-3">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-maroon/60">
+          Free sauce{allotment > 1 ? "s" : ""} with this box
+        </span>
+        <span className="text-xs font-semibold text-maroon">
+          {totalSelected}/{allotment}
+        </span>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {sauceVariations.map((variation) => {
+          const count = itemSauceCounts[variation.name] ?? 0;
+          return (
+            <div
+              key={variation.id}
+              className="flex items-center gap-2 rounded-full border border-maroon/15 bg-cream px-3 py-1"
+            >
+              <span className="text-sm text-maroon">{variation.name}</span>
+              <button
+                type="button"
+                onClick={() =>
+                  setItemSauceCount(item.id, variation.name, count - 1)
+                }
+                className="flex h-5 w-5 items-center justify-center rounded-full border border-maroon/30 text-xs text-maroon"
+              >
+                −
+              </button>
+              <span className="w-3 text-center text-sm text-maroon">
+                {count}
+              </span>
+              <button
+                type="button"
+                disabled={capReached}
+                onClick={() =>
+                  setItemSauceCount(item.id, variation.name, count + 1)
+                }
+                className="flex h-5 w-5 items-center justify-center rounded-full border border-maroon/30 text-xs text-maroon disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                +
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function CartClient({
+  sauceItemId,
   sauceVariations,
   productsById,
   suggestedProduct,
 }: {
+  sauceItemId: string | null;
   sauceVariations: SauceVariation[];
   productsById: Record<string, Product>;
   suggestedProduct: SuggestedProduct | null;
 }) {
   const {
     items,
+    addItem,
     removeItem,
     updateQuantity,
+    setItemSauceCount,
     totalCents,
-    sauces,
-    setSauceCount,
-    totalEmpanadaCount,
-    freeSauceAllotment,
   } = useCart();
 
-  const totalSaucesSelected = Object.values(sauces).reduce((a, b) => a + b, 0);
-  const paidSauces = Math.max(0, totalSaucesSelected - freeSauceAllotment);
-  const saucePriceCents = sauceVariations[0]?.priceCents ?? 0;
-  const sauceCostCents = paidSauces * saucePriceCents;
-  const grandTotalCents = totalCents + sauceCostCents;
+  // Extra sauces bought beyond the free allotment are just a normal,
+  // separately-priced cart item (same shape as any other product) rather
+  // than routed through the free-sauce mechanism above — so no extra cost
+  // math is needed here, it's already folded into totalCents.
+  const grandTotalCents = totalCents;
+
+  function addOrIncrementSauce(variation: SauceVariation) {
+    if (!sauceItemId) return;
+    const existing = items.find(
+      (i) =>
+        i.itemId === sauceItemId &&
+        i.variationId === variation.id &&
+        !i.flavors,
+    );
+    if (existing) {
+      updateQuantity(existing.id, existing.quantity + 1);
+    } else {
+      addItem({
+        itemId: sauceItemId,
+        variationId: variation.id,
+        name: `Sauce - ${variation.name}`,
+        unitPriceCents: variation.priceCents,
+        quantity: 1,
+      });
+    }
+  }
 
   const searchParams = useSearchParams();
   const orderError = searchParams.get("error") === "order";
@@ -174,72 +271,81 @@ export default function CartClient({
             {items.map((item) => (
               <li
                 key={item.id}
-                className="flex items-center gap-4 rounded-3xl bg-cream p-4 sm:p-5"
+                className="flex flex-col gap-3 rounded-3xl bg-cream p-4 sm:p-5"
               >
-                <Thumbnail
-                  product={productsById[item.itemId]}
-                  className="h-20 w-20 sm:h-24 sm:w-24"
-                />
+                <div className="flex items-center gap-4">
+                  <Thumbnail
+                    product={productsById[item.itemId]}
+                    className="h-20 w-20 sm:h-24 sm:w-24"
+                  />
 
-                <div className="min-w-0 flex-1">
-                  <h2 className="font-display text-lg font-semibold text-maroon">
-                    {item.name}
-                  </h2>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="font-display text-lg font-semibold text-maroon">
+                      {item.name}
+                    </h2>
 
-                  {item.flavors ? (
-                    <p className="mt-1 text-sm text-maroon/70">
-                      {Object.entries(item.flavors)
-                        .filter(([, count]) => count > 0)
-                        .map(([flavor, count]) => `${count}x ${flavor}`)
-                        .join(", ")}
+                    {item.flavors ? (
+                      <p className="mt-1 text-sm text-maroon/70">
+                        {Object.entries(item.flavors)
+                          .filter(([, count]) => count > 0)
+                          .map(([flavor, count]) => `${count}x ${flavor}`)
+                          .join(", ")}
+                      </p>
+                    ) : (
+                      <div className="mt-2 flex items-center gap-2 text-sm text-maroon/70">
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          className="flex h-6 w-6 items-center justify-center rounded-full border border-maroon/30"
+                        >
+                          −
+                        </button>
+                        <span>{item.quantity}</span>
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          className="flex h-6 w-6 items-center justify-center rounded-full border border-maroon/30"
+                        >
+                          +
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex shrink-0 flex-col items-end gap-2">
+                    <p className="font-medium text-terracotta">
+                      {formatPrice(item.unitPriceCents * item.quantity)}
                     </p>
-                  ) : (
-                    <div className="mt-2 flex items-center gap-2 text-sm text-maroon/70">
-                      <button
-                        type="button"
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        className="flex h-6 w-6 items-center justify-center rounded-full border border-maroon/30"
-                      >
-                        −
-                      </button>
-                      <span>{item.quantity}</span>
-                      <button
-                        type="button"
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className="flex h-6 w-6 items-center justify-center rounded-full border border-maroon/30"
-                      >
-                        +
-                      </button>
-                    </div>
-                  )}
+                    <button
+                      type="button"
+                      onClick={() => removeItem(item.id)}
+                      aria-label={`Remove ${item.name} from cart`}
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-maroon/40 transition-colors hover:bg-red-50 hover:text-red-600"
+                    >
+                      <RemoveIcon />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex shrink-0 flex-col items-end gap-2">
-                  <p className="font-medium text-terracotta">
-                    {formatPrice(item.unitPriceCents * item.quantity)}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => removeItem(item.id)}
-                    aria-label={`Remove ${item.name} from cart`}
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-maroon/40 transition-colors hover:bg-red-50 hover:text-red-600"
-                  >
-                    <RemoveIcon />
-                  </button>
-                </div>
+                {item.flavors && (
+                  <ItemSauces
+                    item={item}
+                    sauceVariations={sauceVariations}
+                    setItemSauceCount={setItemSauceCount}
+                  />
+                )}
               </li>
             ))}
           </ul>
 
-          {totalEmpanadaCount > 0 && sauceVariations.length > 0 && (
+          {sauceItemId && sauceVariations.length > 0 && (
             <div className="rounded-3xl bg-cream p-6">
               <h2 className="font-display text-lg font-semibold text-maroon">
-                Sauces
+                Add extra sauces
               </h2>
               <p className="mt-1 text-sm text-maroon/70">
-                {freeSauceAllotment > 0
-                  ? `You've got ${freeSauceAllotment} free sauce${freeSauceAllotment > 1 ? "s" : ""} with ${totalEmpanadaCount} empanadas. Extra sauces are ${formatPrice(saucePriceCents)} each.`
-                  : `Add 3+ empanadas to unlock a free sauce. Sauces are ${formatPrice(saucePriceCents)} each.`}
+                Want more on the side? Add extra sauces here, on top of the
+                free ones that come with your boxes.
               </p>
 
               <div className="mt-4 flex flex-col gap-2">
@@ -248,49 +354,22 @@ export default function CartClient({
                     key={variation.id}
                     className="flex items-center justify-between rounded-xl bg-background px-4 py-2"
                   >
-                    <span className="text-maroon">{variation.name}</span>
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setSauceCount(
-                            variation.name,
-                            (sauces[variation.name] ?? 0) - 1,
-                          )
-                        }
-                        className="flex h-7 w-7 items-center justify-center rounded-full border border-maroon/30 text-maroon"
-                      >
-                        −
-                      </button>
-                      <span className="w-4 text-center text-maroon">
-                        {sauces[variation.name] ?? 0}
+                    <span className="text-maroon">
+                      {variation.name}
+                      <span className="ml-2 text-sm text-maroon/50">
+                        {formatPrice(variation.priceCents)}
                       </span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setSauceCount(
-                            variation.name,
-                            (sauces[variation.name] ?? 0) + 1,
-                          )
-                        }
-                        className="flex h-7 w-7 items-center justify-center rounded-full border border-maroon/30 text-maroon"
-                      >
-                        +
-                      </button>
-                    </div>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => addOrIncrementSauce(variation)}
+                      className="rounded-full border border-terracotta px-4 py-1.5 text-sm font-semibold text-terracotta transition-colors hover:bg-terracotta hover:text-background"
+                    >
+                      + Add
+                    </button>
                   </div>
                 ))}
               </div>
-
-              {totalSaucesSelected > 0 && (
-                <p className="mt-3 text-sm text-maroon/70">
-                  {totalSaucesSelected} sauce{totalSaucesSelected > 1 ? "s" : ""}{" "}
-                  selected — {Math.min(totalSaucesSelected, freeSauceAllotment)}{" "}
-                  free
-                  {paidSauces > 0 &&
-                    `, ${paidSauces} × ${formatPrice(saucePriceCents)} = ${formatPrice(sauceCostCents)}`}
-                </p>
-              )}
             </div>
           )}
 
@@ -308,15 +387,9 @@ export default function CartClient({
           </h2>
           <div className="mt-4 flex flex-col gap-2 text-sm text-maroon/70">
             <div className="flex items-center justify-between">
-              <span>Empanadas</span>
+              <span>Subtotal</span>
               <span>{formatPrice(totalCents)}</span>
             </div>
-            {sauceCostCents > 0 && (
-              <div className="flex items-center justify-between">
-                <span>Sauces</span>
-                <span>{formatPrice(sauceCostCents)}</span>
-              </div>
-            )}
           </div>
           <div className="mt-4 flex items-center justify-between border-t border-maroon/10 pt-4 text-lg font-semibold text-maroon">
             <span>Total</span>

@@ -42,11 +42,22 @@ export default async function ProductPage({
           <h1 className="font-display text-4xl font-semibold text-maroon">
             {item.name.trim()}
           </h1>
-          <p className="mt-2 text-xl font-medium text-terracotta">
+          <p className="mt-2 flex items-center gap-2 text-xl font-medium text-terracotta">
             {price ?? "Ask for pricing"}
+            {item.requiredFlavorCount === 12 && (
+              <span className="rounded-full bg-terracotta/10 px-3 py-1 text-sm font-semibold text-terracotta">
+                2 free!
+              </span>
+            )}
           </p>
           {item.description && (
             <p className="mt-4 text-maroon/70">{item.description}</p>
+          )}
+          {item.requiredFlavorCount === 12 && (
+            <p className="mt-2 text-sm text-maroon/60">
+              You get 14 empanadas for the price of 12 — choose all 14
+              flavors below.
+            </p>
           )}
 
           <AddToCart item={item} />

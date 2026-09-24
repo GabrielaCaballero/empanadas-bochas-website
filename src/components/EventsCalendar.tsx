@@ -41,10 +41,10 @@ export default function EventsCalendar({ events }: { events: EventEntry[] }) {
   const today = todayIso();
   const now = new Date();
 
-  const upcoming = events.filter((e) => e.date >= today);
-  const [selected, setSelected] = useState<EventEntry | null>(
-    upcoming[0] ?? events[0] ?? null,
-  );
+  // Starts with nothing selected — the calendar shows full-width until the
+  // customer actually picks a highlighted date, at which point it squeezes
+  // over to make room for the details panel (see the grid below).
+  const [selected, setSelected] = useState<EventEntry | null>(null);
   // Always starts on the current real month, regardless of where the next
   // event falls — if there's a gap (e.g. this month's stops already
   // happened and the next one is two months out), the calendar shouldn't
@@ -114,7 +114,7 @@ export default function EventsCalendar({ events }: { events: EventEntry[] }) {
 
         <div className="pointer-events-none absolute right-6 bottom-8 h-20 w-20 rotate-6 overflow-hidden rounded-full shadow-2xl ring-4 ring-cream/30 sm:right-10 sm:bottom-10 sm:h-28 sm:w-28">
           <Image
-            src="/photos/empanada-5.png"
+            src="/photos/empanada-5.webp"
             alt=""
             fill
             className="object-cover"
@@ -175,7 +175,11 @@ export default function EventsCalendar({ events }: { events: EventEntry[] }) {
         ))}
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div
+        className={`mt-6 grid grid-cols-1 gap-6 ${
+          selected ? "lg:grid-cols-[minmax(0,1fr)_340px]" : ""
+        }`}
+      >
         <div className="rounded-3xl bg-cream p-6 shadow-sm">
           <div className="grid grid-cols-7 gap-2 text-center text-xs font-medium text-maroon/50">
             {WEEKDAYS.map((d, i) => (
@@ -252,15 +256,15 @@ export default function EventsCalendar({ events }: { events: EventEntry[] }) {
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-3xl bg-cream shadow-sm">
-          <div
-            className="h-1.5 w-full"
-            style={{
-              background: `linear-gradient(90deg, ${theme.from}, ${theme.to})`,
-            }}
-          />
-          <div className="p-6">
-            {selected ? (
+        {selected && (
+          <div className="overflow-hidden rounded-3xl bg-cream shadow-sm">
+            <div
+              className="h-1.5 w-full"
+              style={{
+                background: `linear-gradient(90deg, ${theme.from}, ${theme.to})`,
+              }}
+            />
+            <div className="p-6">
               <>
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
@@ -373,15 +377,9 @@ export default function EventsCalendar({ events }: { events: EventEntry[] }) {
                   </button>
                 </div>
               </>
-            ) : (
-              <p className="text-maroon/60">
-                {events.length === 0
-                  ? "No stops posted yet — check back soon!"
-                  : "Select a highlighted date to see details."}
-              </p>
-            )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

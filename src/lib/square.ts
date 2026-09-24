@@ -98,10 +98,13 @@ export async function getCatalogItems(): Promise<CatalogItem[]> {
     if (obj.type !== "ITEM" || obj.is_deleted) continue;
     const itemData = obj.item_data;
 
-    // Pizza (slices and whole pies) is pop-up-only, not sold through the
-    // website, so it's excluded from the catalog everywhere on the site.
+    // Pizza (slices and whole pies) and the corporate/private "Event Pop Up"
+    // booking item are pop-up- or inquiry-only, not sold as a normal cart
+    // purchase through the website, so both are excluded from the catalog
+    // everywhere on the site.
     const nameLower: string = itemData.name?.toLowerCase() ?? "";
     if (nameLower.includes("pizza") || nameLower.includes("slice")) continue;
+    if (nameLower.includes("event pop up")) continue;
 
     const imageId: string | undefined = itemData.image_ids?.[0];
     const imageUrl = imageId ? (imageUrlsById.get(imageId) ?? null) : null;

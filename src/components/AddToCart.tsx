@@ -7,10 +7,19 @@ import { useCart } from "@/lib/cart-context";
 import type { CatalogItem } from "@/lib/square";
 import { flavorInfo } from "@/lib/flavor-info";
 
+// Box of 12 runs a "buy 12, get 2 free" promo — customers pick 14 flavors
+// total and receive 14 empanadas, still charged the $60 Box-of-12 price.
+// Square's catalog only defines the paid 12 (via requiredFlavorCount), so
+// this bumps the picker's required count for that one product rather than
+// changing catalog data the business owner manages directly in Square.
+const BOX_OF_12_PROMO_COUNT = 14;
+
 export default function AddToCart({ item }: { item: CatalogItem }) {
   const { addItem } = useCart();
-  const required = item.requiredFlavorCount ?? 0;
-  const hasFlavors = Boolean(item.flavors?.length && required > 0);
+  const rawRequired = item.requiredFlavorCount ?? 0;
+  const isBoxOf12 = rawRequired === 12;
+  const required = isBoxOf12 ? BOX_OF_12_PROMO_COUNT : rawRequired;
+  const hasFlavors = Boolean(item.flavors?.length && rawRequired > 0);
   const hasVariantChoice = !hasFlavors && item.variations.length > 1;
 
   const [selectedVariationId, setSelectedVariationId] = useState(
@@ -70,6 +79,11 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-medium text-maroon/60">
               Choose your flavors
+              {isBoxOf12 && (
+                <span className="ml-1.5 font-semibold text-terracotta">
+                  — 2 free!
+                </span>
+              )}
             </h2>
             <span className="text-sm font-semibold text-maroon">
               {totalFlavorsSelected}/{required}

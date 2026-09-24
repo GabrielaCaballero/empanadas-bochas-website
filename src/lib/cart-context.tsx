@@ -16,6 +16,10 @@ export type CartLineItem = {
   unitPriceCents: number;
   quantity: number;
   flavors?: Record<string, number>;
+  // Free sauces picked for THIS box/item specifically (see
+  // itemSauceAllotment below) — sauces are grouped per box rather than
+  // pooled across the whole cart, so this lives on the item, not globally.
+  sauces?: Record<string, number>;
 };
 
 type CartContextValue = {
@@ -23,13 +27,11 @@ type CartContextValue = {
   addItem: (item: Omit<CartLineItem, "id">) => void;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
+  setItemSauceCount: (id: string, sauceName: string, count: number) => void;
   clearCart: () => void;
   totalCents: number;
   totalCount: number;
-  sauces: Record<string, number>;
-  setSauceCount: (name: string, count: number) => void;
   totalEmpanadaCount: number;
-  freeSauceAllotment: number;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -38,12 +40,32 @@ const STORAGE_KEY = "empanadas-bochas-cart";
 
 type StoredCart = {
   items: CartLineItem[];
-  sauces: Record<string, number>;
 };
+
+// The free-sauce perk scales with how many empanadas are IN A GIVEN BOX —
+// Box of 3 → 2 sauces, Box of 6 → 4, Box of 12(+2 promo) → 6, and any
+// single empanada still gets to pick 1. Applied per cart item (not pooled
+// across the cart) so it can be shown as a sub-picker grouped under each
+// box, per the business's request.
+export function sauceAllotmentForCount(empanadaCount: number): number {
+  if (empanadaCount >= 12) return 6;
+  if (empanadaCount >= 6) return 4;
+  if (empanadaCount >= 3) return 2;
+  if (empanadaCount >= 1) return 1;
+  return 0;
+}
+
+export function itemEmpanadaCount(item: CartLineItem): number {
+  if (!item.flavors) return 0;
+  return Object.values(item.flavors).reduce((a, b) => a + b, 0);
+}
+
+export function itemSauceAllotment(item: CartLineItem): number {
+  return sauceAllotmentForCount(itemEmpanadaCount(item));
+}
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartLineItem[]>([]);
-  const [sauces, setSauces] = useState<Record<string, number>>({});
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -57,7 +79,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const parsed: StoredCart = JSON.parse(raw);
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setItems(parsed.items ?? []);
-        setSauces(parsed.sauces ?? {});
       }
     } catch {
       // ignore malformed storage
@@ -67,9 +88,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!hydrated) return;
-    const toStore: StoredCart = { items, sauces };
+    const toStore: StoredCart = { items };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toStore));
-  }, [items, sauces, hydrated]);
+  }, [items, hydrated]);
 
   function addItem(item: Omit<CartLineItem, "id">) {
     const id = `${item.itemId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -88,17 +109,33 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   function clearCart() {
     setItems([]);
-    setSauces({});
     // Also written directly (not just via state) because this can run in a
     // child's mount effect (see CheckoutSuccessClient) that fires before
     // CartProvider's own localStorage-hydration effect above — without this,
     // that later hydration read would reload the pre-clear cart from storage
     // and clobber the clear.
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ items: [], sauces: {} }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ items: [] }));
   }
 
-  function setSauceCount(name: string, count: number) {
-    setSauces((prev) => ({ ...prev, [name]: Math.max(0, count) }));
+  // Enforces each item's own free-sauce cap right at the source, rather than
+  // relying on the UI to disable buttons — a sauce pick can never exceed
+  // that box's allotment, no matter how it's called.
+  function setItemSauceCount(id: string, sauceName: string, count: number) {
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        const allotment = itemSauceAllotment(item);
+        const currentSauces = item.sauces ?? {};
+        const otherFlavorsTotal = Object.entries(currentSauces)
+          .filter(([flavor]) => flavor !== sauceName)
+          .reduce((sum, [, c]) => sum + c, 0);
+        const clamped = Math.max(
+          0,
+          Math.min(count, allotment - otherFlavorsTotal),
+        );
+        return { ...item, sauces: { ...currentSauces, [sauceName]: clamped } };
+      }),
+    );
   }
 
   const totalCents = items.reduce(
@@ -109,11 +146,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Empanada count only comes from items with a flavor breakdown (individual
   // empanadas and combos both carry `flavors`; other menu items don't).
-  const totalEmpanadaCount = items.reduce((sum, i) => {
-    if (!i.flavors) return sum;
-    return sum + Object.values(i.flavors).reduce((a, b) => a + b, 0);
-  }, 0);
-  const freeSauceAllotment = Math.floor(totalEmpanadaCount / 3);
+  const totalEmpanadaCount = items.reduce(
+    (sum, i) => sum + itemEmpanadaCount(i),
+    0,
+  );
 
   return (
     <CartContext.Provider
@@ -122,13 +158,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
         addItem,
         removeItem,
         updateQuantity,
+        setItemSauceCount,
         clearCart,
         totalCents,
         totalCount,
-        sauces,
-        setSauceCount,
         totalEmpanadaCount,
-        freeSauceAllotment,
       }}
     >
       {children}

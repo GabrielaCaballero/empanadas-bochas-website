@@ -4,7 +4,7 @@ import { formatPrice, type OrderSummary } from "./square";
 // local filesystem — these must point at the deployed site.
 const SITE_URL = "https://empanadasbochas.com";
 const LOGO_URL = `${SITE_URL}/brand/logo.png`;
-const FOOD_PHOTO_URL = `${SITE_URL}/photos/empanada-5.png`;
+const FOOD_PHOTO_URL = `${SITE_URL}/photos/empanada-5.webp`;
 
 const MAROON = "#3C1214";
 const TERRACOTTA = "#C75F3A";

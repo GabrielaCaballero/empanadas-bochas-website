@@ -48,7 +48,7 @@ export const flavorInfo: FlavorInfo[] = [
   },
   {
     name: "Pork BBQ",
-    image: "/menu/pork-bbq.png",
+    image: "/menu/pork-bbq.webp",
     description:
       "Slow-cooked pulled pork tossed in smoky BBQ sauce with melted cheese. Sweet, smoky, and satisfying.",
     ingredients:
@@ -56,7 +56,7 @@ export const flavorInfo: FlavorInfo[] = [
   },
   {
     name: "Buffalo Chicken",
-    image: "/menu/buffalo-chicken.jpeg",
+    image: "/menu/buffalo-chicken.webp",
     description:
       "Shredded chicken tossed in spicy buffalo sauce with a touch of cream cheese. Bold, tangy, and packs some heat.",
     ingredients:
