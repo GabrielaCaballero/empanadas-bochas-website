@@ -45,8 +45,8 @@ export default async function ProductPage({
           <p className="mt-2 flex items-center gap-2 text-xl font-medium text-terracotta">
             {price ?? "Ask for pricing"}
             {item.requiredFlavorCount === 12 && (
-              <span className="rounded-full bg-terracotta/10 px-3 py-1 text-sm font-semibold text-terracotta">
-                2 free!
+              <span className="rounded-full bg-terracotta px-3 py-1 text-sm font-bold tracking-wide text-background shadow-sm">
+                🎉 2 FREE
               </span>
             )}
           </p>
@@ -54,10 +54,16 @@ export default async function ProductPage({
             <p className="mt-4 text-maroon/70">{item.description}</p>
           )}
           {item.requiredFlavorCount === 12 && (
-            <p className="mt-2 text-sm text-maroon/60">
-              You get 14 empanadas for the price of 12 — choose all 14
-              flavors below.
-            </p>
+            <div className="mt-4 flex items-start gap-3 rounded-2xl border-2 border-terracotta/30 bg-terracotta/10 px-4 py-3">
+              <span className="text-2xl">🎉</span>
+              <p className="text-sm font-medium text-maroon">
+                <span className="font-bold text-terracotta">
+                  Buy 12, get 2 free
+                </span>{" "}
+                — you get 14 empanadas total, still charged the Box of 12
+                price. Choose all 14 flavors below.
+              </p>
+            </div>
           )}
 
           <AddToCart item={item} />

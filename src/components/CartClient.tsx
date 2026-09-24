@@ -229,8 +229,13 @@ export default function CartClient({
               <p className="text-sm font-medium text-maroon/60">
                 Pick up where you left off
               </p>
-              <h2 className="mt-0.5 font-display text-xl font-semibold text-maroon">
+              <h2 className="mt-0.5 flex items-center gap-2 font-display text-xl font-semibold text-maroon">
                 {suggestedProduct.name}
+                {/box of 12/i.test(suggestedProduct.name) && (
+                  <span className="rounded-full bg-terracotta px-2 py-0.5 text-xs font-bold tracking-wide text-background">
+                    🎉 2 FREE
+                  </span>
+                )}
               </h2>
               {suggestedProduct.priceCents != null && (
                 <p className="mt-1 font-medium text-terracotta">
