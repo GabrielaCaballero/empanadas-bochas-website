@@ -21,18 +21,24 @@ export default async function ShopPage() {
           const isBoxOf12 = item.requiredFlavorCount === 12;
 
           return (
-            <Link key={item.id} href={`/shop/${item.id}`} className="group block">
-              <div
-                className={`relative aspect-square overflow-hidden rounded-3xl bg-cream shadow-sm transition-shadow duration-300 group-hover:shadow-xl ${
-                  isBoxOf12 ? "ring-2 ring-terracotta ring-offset-2 ring-offset-background" : ""
-                }`}
-              >
+            <Link
+              key={item.id}
+              href={`/shop/${item.id}`}
+              className={`group relative block aspect-4/5 overflow-hidden rounded-3xl bg-cream shadow-sm transition-shadow duration-300 hover:shadow-xl ${
+                isBoxOf12 ? "ring-2 ring-inset ring-terracotta" : ""
+              }`}
+            >
+              {/* The photo fills most of the card by default and grows to
+                  cover the whole thing on hover, so the caption below
+                  becomes an overlay sitting on top of it (see the scrim +
+                  caption below) instead of two separate zones. */}
+              <div className="absolute inset-x-0 top-0 h-[72%] overflow-hidden transition-[height] duration-500 ease-out group-hover:h-full">
                 {item.imageUrl && (
                   <Image
                     src={item.imageUrl}
                     alt={item.name}
                     fill
-                    className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                    className="object-cover"
                     sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                   />
                 )}
@@ -42,17 +48,25 @@ export default async function ShopPage() {
                   </span>
                 )}
               </div>
-              <h2 className="mt-4 font-display text-lg font-semibold text-maroon">
-                {item.name.trim()}
-              </h2>
-              <p className="mt-0.5 text-terracotta font-medium">
-                {price ?? "Ask for pricing"}
-                {isBoxOf12 && (
-                  <span className="ml-1.5 font-semibold text-maroon/60">
-                    · 14 empanadas, 2 free!
-                  </span>
-                )}
-              </p>
+
+              {/* Dark scrim so the caption stays legible once it's sitting
+                  on top of the now-expanded photo instead of the cream
+                  card background. */}
+              <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/25 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+              <div className="absolute inset-x-0 bottom-0 p-4">
+                <h2 className="font-display text-lg font-semibold text-maroon transition-colors duration-300 group-hover:text-background">
+                  {item.name.trim()}
+                </h2>
+                <p className="mt-0.5 font-medium text-terracotta transition-colors duration-300 group-hover:text-cream">
+                  {price ?? "Ask for pricing"}
+                  {isBoxOf12 && (
+                    <span className="ml-1.5 font-semibold text-maroon/60 transition-colors duration-300 group-hover:text-cream/80">
+                      · 14 empanadas, 2 free!
+                    </span>
+                  )}
+                </p>
+              </div>
             </Link>
           );
         })}
