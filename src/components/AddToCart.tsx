@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import type { CatalogItem } from "@/lib/square";
 import { flavorInfo } from "@/lib/flavor-info";
-import { VegBadge, AllergenTags } from "@/components/AllergenLegend";
+import { VegBadge } from "@/components/AllergenLegend";
 
 // Box of 12 runs a "buy 12, get 2 free" promo — customers pick 14 flavors
 // total and receive 14 empanadas, still charged the $60 Box-of-12 price.
@@ -35,27 +35,6 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
   const [quantity, setQuantity] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
   const [lastAddedCount, setLastAddedCount] = useState(0);
-  // Which flavor rows have their ingredients/allergens expanded — collapsed
-  // by default so the picker doesn't repeat the same flavor list twice
-  // (once to pick, once to read ingredients further down the page). Each
-  // newly-picked flavor auto-expands (see changeFlavor below) so customers
-  // see what they're adding without having to click the chevron themselves
-  // — they can still collapse any row manually afterward.
-  const [expandedFlavors, setExpandedFlavors] = useState<Set<string>>(
-    new Set(),
-  );
-
-  function toggleExpanded(flavor: string) {
-    setExpandedFlavors((prev) => {
-      const next = new Set(prev);
-      if (next.has(flavor)) {
-        next.delete(flavor);
-      } else {
-        next.add(flavor);
-      }
-      return next;
-    });
-  }
 
   const totalFlavorsSelected = Object.values(flavorCounts).reduce(
     (a, b) => a + b,
@@ -67,19 +46,11 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
   );
 
   function changeFlavor(flavor: string, delta: number) {
-    const currentCount = flavorCounts[flavor] ?? 0;
-    const isNewlySelected =
-      delta > 0 && currentCount === 0 && totalFlavorsSelected < required;
     setFlavorCounts((prev) => {
       const current = prev[flavor] ?? 0;
       if (delta > 0 && totalFlavorsSelected >= required) return prev;
       return { ...prev, [flavor]: Math.max(0, current + delta) };
     });
-    // Every time a flavor goes from unselected to selected, auto-expand its
-    // ingredients — not just the first one of the whole picker.
-    if (isNewlySelected) {
-      setExpandedFlavors((prev) => new Set(prev).add(flavor));
-    }
     setJustAdded(false);
   }
 
@@ -124,78 +95,49 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
             {item.flavors!.map((flavor) => {
               const info = flavorInfo.find((f) => f.name === flavor);
               const count = flavorCounts[flavor] ?? 0;
-              const expanded = expandedFlavors.has(flavor);
               return (
                 <div
                   key={flavor}
-                  className={`rounded-2xl border transition-colors ${
+                  className={`flex items-center gap-3 rounded-2xl border p-2 transition-colors ${
                     count > 0
                       ? "border-terracotta bg-terracotta/5"
                       : "border-maroon/10"
                   }`}
                 >
-                  <div className="flex items-center gap-3 p-2">
-                    <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-cream">
-                      {info?.image && (
-                        <Image
-                          src={info.image}
-                          alt={flavor}
-                          fill
-                          className="object-cover"
-                          sizes="44px"
-                        />
-                      )}
-                    </div>
+                  <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-cream">
+                    {info?.image && (
+                      <Image
+                        src={info.image}
+                        alt={flavor}
+                        fill
+                        className="object-cover"
+                        sizes="44px"
+                      />
+                    )}
+                  </div>
+                  <span className="flex flex-1 items-center gap-1.5 text-sm font-medium text-maroon">
+                    {flavor}
+                    {info?.vegetarian && <VegBadge />}
+                  </span>
+                  <div className="flex items-center gap-3">
                     <button
                       type="button"
-                      onClick={() => toggleExpanded(flavor)}
-                      aria-expanded={expanded}
-                      className="flex flex-1 items-center gap-1.5 text-left text-sm font-medium text-maroon"
+                      onClick={() => changeFlavor(flavor, -1)}
+                      className="flex h-7 w-7 items-center justify-center rounded-full border border-maroon/30 text-maroon"
                     >
-                      {flavor}
-                      {info?.vegetarian && <VegBadge />}
-                      <span
-                        className={`ml-0.5 text-maroon/40 transition-transform ${expanded ? "rotate-180" : ""}`}
-                        aria-hidden="true"
-                      >
-                        ⌄
-                      </span>
+                      −
                     </button>
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => changeFlavor(flavor, -1)}
-                        className="flex h-7 w-7 items-center justify-center rounded-full border border-maroon/30 text-maroon"
-                      >
-                        −
-                      </button>
-                      <span className="w-4 text-center text-maroon">
-                        {count}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => changeFlavor(flavor, 1)}
-                        className="flex h-7 w-7 items-center justify-center rounded-full border border-maroon/30 text-maroon"
-                      >
-                        +
-                      </button>
-                    </div>
+                    <span className="w-4 text-center text-maroon">
+                      {count}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => changeFlavor(flavor, 1)}
+                      className="flex h-7 w-7 items-center justify-center rounded-full border border-maroon/30 text-maroon"
+                    >
+                      +
+                    </button>
                   </div>
-
-                  {expanded && (
-                    <div className="mx-2 mb-2 border-t border-maroon/10 pt-2">
-                      {info?.ingredients && (
-                        <p className="text-xs leading-snug text-maroon/70">
-                          {info.ingredients}
-                        </p>
-                      )}
-                      {info?.allergens && (
-                        <div className="mt-1.5">
-                          <AllergenTags allergens={info.allergens} />
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
               );
             })}
@@ -211,6 +153,17 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
                 .join(", ")}
             </div>
           )}
+
+          {/* One link instead of a detailed breakdown under every flavor —
+              per the business: customers don't read per-item detail, the
+              general allergen info already covers what people actually
+              ask about, and more detail just invites more questions. */}
+          <Link
+            href="/#flavors"
+            className="mt-3 inline-block text-sm font-medium text-terracotta hover:text-rust"
+          >
+            See full flavor descriptions →
+          </Link>
         </div>
       ) : (
         <div className="mt-8 flex flex-col gap-4">

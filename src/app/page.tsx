@@ -129,7 +129,10 @@ export default function Home() {
 
       <Testimonials />
 
-      <section className="mx-auto w-full max-w-6xl px-6 pt-8 pb-24">
+      <section
+        id="flavors"
+        className="mx-auto w-full max-w-6xl scroll-mt-20 px-6 pt-8 pb-24"
+      >
         <div className="text-center">
           <h2 className="font-display text-3xl font-semibold text-maroon sm:text-4xl">
             Our Flavors
