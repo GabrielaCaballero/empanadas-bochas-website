@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { getCatalogItems, formatPrice } from "@/lib/square";
+import { getCatalogItems, getActiveSalesTax, formatPrice } from "@/lib/square";
 
 export const revalidate = 300;
 
@@ -14,6 +14,7 @@ export const metadata: Metadata = {
 
 export default async function ShopPage() {
   const items = await getCatalogItems();
+  const salesTax = await getActiveSalesTax();
 
   return (
     <section className="mx-auto w-full max-w-6xl flex-1 px-6 py-16">
@@ -68,6 +69,11 @@ export default async function ShopPage() {
                 </h2>
                 <p className="mt-0.5 font-medium text-terracotta transition-colors duration-300 group-hover:text-cream">
                   {price ?? "Ask for pricing"}
+                  {price && salesTax && (
+                    <span className="ml-1 text-xs font-normal text-maroon/50 transition-colors duration-300 group-hover:text-cream/70">
+                      + tax
+                    </span>
+                  )}
                   {isBoxOf12 && (
                     <span className="ml-1.5 font-semibold text-maroon/60 transition-colors duration-300 group-hover:text-cream/80">
                       · 14 empanadas, 2 free!

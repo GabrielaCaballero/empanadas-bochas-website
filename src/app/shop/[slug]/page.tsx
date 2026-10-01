@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { getCatalogItems, formatPrice } from "@/lib/square";
+import { getCatalogItems, getActiveSalesTax, formatPrice } from "@/lib/square";
 import AddToCart from "@/components/AddToCart";
 import Accordion from "@/components/Accordion";
 import AllergenLegend from "@/components/AllergenLegend";
@@ -46,6 +46,7 @@ export default async function ProductPage({
   if (!item) notFound();
 
   const price = formatPrice(item.variations[0]?.priceCents ?? null);
+  const salesTax = await getActiveSalesTax();
   const related = items.filter((i) => i.id !== item.id).slice(0, 3);
 
   // Lets Google (and LLMs that crawl/retrieve product pages) see this as a
@@ -94,6 +95,11 @@ export default async function ProductPage({
           </h1>
           <p className="mt-2 flex items-center gap-2 text-xl font-medium text-terracotta">
             {price ?? "Ask for pricing"}
+            {price && salesTax && (
+              <span className="text-sm font-normal text-maroon/50">
+                + tax
+              </span>
+            )}
             {item.requiredFlavorCount === 12 && (
               <span className="rounded-full bg-terracotta px-3 py-1 text-sm font-bold tracking-wide text-background shadow-sm">
                 🎉 2 FREE
