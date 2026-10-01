@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import type { CatalogItem } from "@/lib/square";
 import { flavorInfo } from "@/lib/flavor-info";
+import { VegBadge } from "@/components/AllergenLegend";
 
 // Box of 12 runs a "buy 12, get 2 free" promo — customers pick 14 flavors
 // total and receive 14 empanadas, still charged the $60 Box-of-12 price.
@@ -116,11 +117,7 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
                   </div>
                   <span className="flex-1 text-sm font-medium text-maroon">
                     {flavor}
-                    {info?.vegetarian && (
-                      <span className="ml-1 font-normal text-maroon/50">
-                        (V)
-                      </span>
-                    )}
+                    {info?.vegetarian && <VegBadge />}
                   </span>
                   <div className="flex items-center gap-3">
                     <button
