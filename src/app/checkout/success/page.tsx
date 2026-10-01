@@ -1,5 +1,11 @@
 import { redirect } from "next/navigation";
-import { getRecentOrders, findRecentMatchingOrder, formatPrice } from "@/lib/square";
+import {
+  getOrderById,
+  getRecentOrders,
+  findRecentMatchingOrder,
+  formatPrice,
+  type OrderSummary,
+} from "@/lib/square";
 import { decodeCheckoutContext } from "@/lib/checkout-context";
 import { sendEmail, BUSINESS_EMAIL } from "@/lib/email";
 import {
@@ -22,15 +28,30 @@ export default async function CheckoutSuccessPage({
   const ctx = ctxParam ? decodeCheckoutContext(ctxParam) : null;
   if (!ctx) redirect("/cart?error=order");
 
-  // There's no order ID to look up directly (Square only hands that back
-  // after the payment link is created, before we know the redirect_url is
-  // even needed) — so a completed payment is confirmed by finding a
-  // recent paid order with a matching total. Anything else (canceled/
-  // abandoned checkout, tampered link) means no such order exists and we
-  // bail to the cart with an error.
-  const orders = await getRecentOrders(MATCH_WINDOW_MS);
-  const order = findRecentMatchingOrder(orders, ctx.totalCents, MATCH_WINDOW_MS);
+  // Looked up directly by ID (known since before the buyer ever paid — see
+  // createPaymentLink's doc comment in square.ts) rather than guessed from
+  // recent orders by total+recency, which could occasionally match a
+  // DIFFERENT customer's order with the same total (see
+  // findRecentMatchingOrder's doc comment). The total+recency search is
+  // kept only as a fallback: a ctx blob encoded before this existed, or a
+  // transient failure on the direct lookup itself.
+  let order: OrderSummary | null = null;
+  if (ctx.orderId) {
+    try {
+      order = await getOrderById(ctx.orderId);
+    } catch (err) {
+      console.error("Direct order lookup failed, falling back to search", err);
+    }
+  }
+  if (!order) {
+    const orders = await getRecentOrders(MATCH_WINDOW_MS);
+    order = findRecentMatchingOrder(orders, ctx.totalCents, MATCH_WINDOW_MS) ?? null;
+  }
 
+  // Not found (canceled/abandoned checkout, tampered link) or found but
+  // still unpaid (getOrderById already filters to paid states, but a
+  // not-yet-indexed order via the search fallback wouldn't have reached
+  // this far anyway) means there's nothing to confirm — bail to the cart.
   if (!order) redirect("/cart?error=order");
 
   const fulfillment = ctx.fulfillment;

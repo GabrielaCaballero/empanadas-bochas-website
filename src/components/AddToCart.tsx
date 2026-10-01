@@ -37,7 +37,10 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
   const [lastAddedCount, setLastAddedCount] = useState(0);
   // Which flavor rows have their ingredients/allergens expanded — collapsed
   // by default so the picker doesn't repeat the same flavor list twice
-  // (once to pick, once to read ingredients further down the page).
+  // (once to pick, once to read ingredients further down the page). Each
+  // newly-picked flavor auto-expands (see changeFlavor below) so customers
+  // see what they're adding without having to click the chevron themselves
+  // — they can still collapse any row manually afterward.
   const [expandedFlavors, setExpandedFlavors] = useState<Set<string>>(
     new Set(),
   );
@@ -64,11 +67,19 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
   );
 
   function changeFlavor(flavor: string, delta: number) {
+    const currentCount = flavorCounts[flavor] ?? 0;
+    const isNewlySelected =
+      delta > 0 && currentCount === 0 && totalFlavorsSelected < required;
     setFlavorCounts((prev) => {
       const current = prev[flavor] ?? 0;
       if (delta > 0 && totalFlavorsSelected >= required) return prev;
       return { ...prev, [flavor]: Math.max(0, current + delta) };
     });
+    // Every time a flavor goes from unselected to selected, auto-expand its
+    // ingredients — not just the first one of the whole picker.
+    if (isNewlySelected) {
+      setExpandedFlavors((prev) => new Set(prev).add(flavor));
+    }
     setJustAdded(false);
   }
 
@@ -124,14 +135,14 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
                   }`}
                 >
                   <div className="flex items-center gap-3 p-2">
-                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-cream">
+                    <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-cream">
                       {info?.image && (
                         <Image
                           src={info.image}
                           alt={flavor}
                           fill
                           className="object-cover"
-                          sizes="56px"
+                          sizes="44px"
                         />
                       )}
                     </div>
@@ -172,9 +183,9 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
                   </div>
 
                   {expanded && (
-                    <div className="px-2 pb-3 pl-[4.5rem]">
+                    <div className="mx-2 mb-2 border-t border-maroon/10 pt-2">
                       {info?.ingredients && (
-                        <p className="text-xs text-maroon/70">
+                        <p className="text-xs leading-snug text-maroon/70">
                           {info.ingredients}
                         </p>
                       )}
