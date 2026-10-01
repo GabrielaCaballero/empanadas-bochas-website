@@ -85,7 +85,6 @@ export async function POST(request: Request) {
   const lineItems = buildSquareLineItems(items);
 
   let ctxFulfillment: CheckoutContext["fulfillment"];
-  let finalTotalCents = totalCents;
 
   if (fulfillment.kind === "event") {
     // Re-fetched and matched server-side rather than trusting the client's
@@ -145,7 +144,6 @@ export async function POST(request: Request) {
       quantity: 1,
       unitPriceCents: feeCents,
     });
-    finalTotalCents = totalCents + feeCents;
 
     ctxFulfillment = {
       kind: "delivery",
@@ -180,11 +178,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 502 });
   }
 
+  // Square's own computed total (including tax — see createPaymentLink)
+  // rather than the client's pre-tax totalCents. ctx.totalCents is what the
+  // fallback order-matching in /checkout/success compares against real
+  // Square order totals with, so it has to be the real, final, tax-inclusive
+  // amount or that fallback would never match.
   const ctx = encodeCheckoutContext({
     name: customerName,
     email: customerEmail,
     phone: customerPhone,
-    totalCents: finalTotalCents,
+    totalCents: paymentLink.totalCents,
     fulfillment: ctxFulfillment,
     orderId: paymentLink.orderId,
   });
