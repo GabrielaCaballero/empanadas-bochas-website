@@ -10,6 +10,7 @@ import { getDeliveryZones, computeDeliveryFeeCents } from "@/lib/delivery-pricin
 import { encodeCheckoutContext, type CheckoutContext } from "@/lib/checkout-context";
 import { PICKUP_ADDRESS } from "@/lib/business-info";
 import type { CartLineItem } from "@/lib/cart-context";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 type Fulfillment =
   | { kind: "event"; eventDate: string; venue: string }
@@ -26,6 +27,25 @@ type RequestBody = {
 };
 
 export async function POST(request: Request) {
+  // Creates a real Square order even on a failed/incomplete submission, so
+  // this guards against a script hammering the endpoint — no charge happens
+  // until the buyer actually pays, but each call still litters the Square
+  // dashboard with a draft order and spends API quota.
+  const { allowed, retryAfterSeconds } = checkRateLimit(
+    `checkout:${getClientIp(request)}`,
+  );
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Too many checkout attempts — please wait a moment and try again." },
+      {
+        status: 429,
+        headers: retryAfterSeconds
+          ? { "Retry-After": String(retryAfterSeconds) }
+          : undefined,
+      },
+    );
+  }
+
   const body: RequestBody = await request.json();
   const {
     items,
