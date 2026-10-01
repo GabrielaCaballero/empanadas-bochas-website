@@ -63,14 +63,28 @@ export function buildOrderItemsTableHtml(order: OrderSummary): string {
     })
     .join("");
 
+  const taxRow =
+    order.totalTaxCents > 0
+      ? `
+      <tr>
+        <td style="padding:6px 14px;font-size:13px;color:${MUTED};border-top:2px solid ${TERRACOTTA};">
+          Tax
+        </td>
+        <td style="padding:6px 14px;font-size:13px;color:${MUTED};text-align:right;border-top:2px solid ${TERRACOTTA};">
+          ${formatPrice(order.totalTaxCents)}
+        </td>
+      </tr>`
+      : "";
+
   return `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border-radius:12px;overflow:hidden;border:1px solid #eee0cf;">
       ${rows}
+      ${taxRow}
       <tr>
-        <td style="padding:12px 14px;font-size:15px;font-weight:bold;color:${MAROON};border-top:2px solid ${TERRACOTTA};">
+        <td style="padding:12px 14px;font-size:15px;font-weight:bold;color:${MAROON};${taxRow ? "" : `border-top:2px solid ${TERRACOTTA};`}">
           Total
         </td>
-        <td style="padding:12px 14px;font-size:15px;font-weight:bold;color:${MAROON};text-align:right;border-top:2px solid ${TERRACOTTA};">
+        <td style="padding:12px 14px;font-size:15px;font-weight:bold;color:${MAROON};text-align:right;${taxRow ? "" : `border-top:2px solid ${TERRACOTTA};`}">
           ${formatPrice(order.totalCents)}
         </td>
       </tr>

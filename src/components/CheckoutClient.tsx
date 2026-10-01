@@ -72,9 +72,13 @@ function PillGroup<T extends string>({
 export default function CheckoutClient({
   events,
   deliveryZones,
+  taxRate,
+  taxName,
 }: {
   events: EventEntry[];
   deliveryZones: DeliveryZone[];
+  taxRate: number | null;
+  taxName: string | null;
 }) {
   const { items, totalCents } = useCart();
 
@@ -163,7 +167,15 @@ export default function CheckoutClient({
     selection?.kind === "delivery"
       ? computeDeliveryFeeCents(selection.zone, grandTotalCents)
       : 0;
-  const orderTotalCents = grandTotalCents + deliveryFeeCents;
+  // Tax applies to the whole order Square actually builds — merchandise
+  // plus the delivery line item, not just the merchandise subtotal — so
+  // it's computed on top of both here, matching the scope: "ORDER" tax
+  // Square itself applies (see createPaymentLink). This is an ESTIMATE for
+  // the customer to see before paying; Square computes the real, final
+  // amount when the order is actually created.
+  const preTaxTotalCents = grandTotalCents + deliveryFeeCents;
+  const taxCents = taxRate ? Math.round(preTaxTotalCents * taxRate) : 0;
+  const orderTotalCents = preTaxTotalCents + taxCents;
 
   if (items.length === 0) {
     return (
@@ -387,6 +399,14 @@ export default function CheckoutClient({
                 formatPrice(deliveryFeeCents)
               )}
             </span>
+          </div>
+        )}
+        {taxRate != null && (
+          <div className="mt-1 flex items-center justify-between text-sm text-maroon/70">
+            <span>
+              {taxName ?? "Tax"} ({(taxRate * 100).toFixed(3).replace(/\.?0+$/, "")}%)
+            </span>
+            <span>{formatPrice(taxCents)}</span>
           </div>
         )}
       </div>

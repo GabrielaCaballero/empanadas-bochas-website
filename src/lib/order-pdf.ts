@@ -107,6 +107,9 @@ export async function buildOrderReceiptPdf({
   });
   y -= 20;
 
+  if (order.totalTaxCents > 0) {
+    draw(`Tax: ${formatPrice(order.totalTaxCents)}`, { size: 11, color: GRAY, gap: 18 });
+  }
   draw(`Total: ${formatPrice(order.totalCents)}`, { size: 13, useBold: true, color: MAROON });
 
   return doc.save();

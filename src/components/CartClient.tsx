@@ -140,11 +140,15 @@ export default function CartClient({
   sauceVariations,
   productsById,
   suggestedProduct,
+  taxRate,
+  taxName,
 }: {
   sauceItemId: string | null;
   sauceVariations: SauceVariation[];
   productsById: Record<string, Product>;
   suggestedProduct: SuggestedProduct | null;
+  taxRate: number | null;
+  taxName: string | null;
 }) {
   const {
     items,
@@ -159,7 +163,14 @@ export default function CartClient({
   // separately-priced cart item (same shape as any other product) rather
   // than routed through the free-sauce mechanism above — so no extra cost
   // math is needed here, it's already folded into totalCents.
-  const grandTotalCents = totalCents;
+  //
+  // This is an ESTIMATE shown for transparency, matching the same rate
+  // Square's own checkout actually applies (see getActiveSalesTax) — the
+  // real, authoritative tax amount is computed by Square itself when the
+  // order is created, this just avoids surprising the customer with a
+  // different total once they reach Square's page.
+  const taxCents = taxRate ? Math.round(totalCents * taxRate) : 0;
+  const grandTotalCents = totalCents + taxCents;
 
   function addOrIncrementSauce(variation: SauceVariation) {
     if (!sauceItemId) return;
@@ -395,6 +406,14 @@ export default function CartClient({
               <span>Subtotal</span>
               <span>{formatPrice(totalCents)}</span>
             </div>
+            {taxRate != null && (
+              <div className="flex items-center justify-between">
+                <span>
+                  {taxName ?? "Tax"} ({(taxRate * 100).toFixed(3).replace(/\.?0+$/, "")}%)
+                </span>
+                <span>{formatPrice(taxCents)}</span>
+              </div>
+            )}
           </div>
           <div className="mt-4 flex items-center justify-between border-t border-maroon/10 pt-4 text-lg font-semibold text-maroon">
             <span>Total</span>

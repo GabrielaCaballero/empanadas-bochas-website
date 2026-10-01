@@ -56,7 +56,7 @@ async function fetchCatalogObjects(): Promise<SquareObject[]> {
   }
 
   const res = await fetch(
-    `${SQUARE_BASE_URL}/v2/catalog/list?types=ITEM,IMAGE,MODIFIER_LIST`,
+    `${SQUARE_BASE_URL}/v2/catalog/list?types=ITEM,IMAGE,MODIFIER_LIST,TAX`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -146,6 +146,39 @@ export async function getCatalogItem(id: string): Promise<CatalogItem | null> {
   return items.find((item) => item.id === id) ?? null;
 }
 
+export type SalesTax = {
+  name: string;
+  // Decimal rate (0.08875 for 8.875%), not the raw percentage string Square
+  // returns — both the client (for the estimated subtotal/tax/total
+  // breakdown) and the order-building code want a plain number to multiply
+  // by, not a "8.875" string to parse twice.
+  rate: number;
+};
+
+// Pulled live from whatever's configured as an enabled tax in Square's own
+// Catalog (Square Dashboard → Settings → Taxes) rather than hardcoded here,
+// so it always matches what Square itself would charge and never needs a
+// code change if the rate changes. Always reads the business's real
+// (production) catalog, same as getCatalogItems — tax is a fact about the
+// business, not something that should differ between sandbox and
+// production checkout. Returns null if no enabled tax is configured, in
+// which case no tax is added anywhere (same as today's behavior).
+export async function getActiveSalesTax(): Promise<SalesTax | null> {
+  const objects = await fetchCatalogObjects();
+  const tax = objects.find(
+    (o) => o.type === "TAX" && !o.is_deleted && o.tax_data?.enabled,
+  );
+  if (!tax) return null;
+
+  const percentage = parseFloat(tax.tax_data.percentage);
+  if (!Number.isFinite(percentage)) return null;
+
+  return {
+    name: (tax.tax_data.name as string)?.trim() || "Sales Tax",
+    rate: percentage / 100,
+  };
+}
+
 export function formatPrice(cents: number | null): string | null {
   if (cents == null) return null;
   return `$${(cents / 100).toFixed(2)}`;
@@ -217,8 +250,22 @@ export class SquareApiError extends Error {
 export async function createPaymentLink(
   lineItems: CheckoutLineItem[],
   buyerEmail?: string,
-): Promise<{ id: string; url: string; orderId: string; version: number }> {
+): Promise<{
+  id: string;
+  url: string;
+  orderId: string;
+  version: number;
+  totalCents: number;
+}> {
   const { token, locationId, baseUrl } = checkoutCredentials();
+
+  // Ad-hoc, scope: "ORDER" tax rather than referencing the catalog TAX
+  // object by ID — line items here are already ad-hoc (name + price, not
+  // catalog references, see the comment above), and an order-scoped tax
+  // doesn't need one: Square computes it off the order's own line-item
+  // total automatically, the same "it just works" behavior as the catalog
+  // config this rate is read from.
+  const salesTax = await getActiveSalesTax();
 
   const res = await fetch(`${baseUrl}/v2/online-checkout/payment-links`, {
     method: "POST",
@@ -240,6 +287,17 @@ export async function createPaymentLink(
             currency: "USD",
           },
         })),
+        taxes: salesTax
+          ? [
+              {
+                uid: "sales-tax",
+                name: salesTax.name,
+                percentage: (salesTax.rate * 100).toString(),
+                scope: "ORDER",
+                type: "ADDITIVE",
+              },
+            ]
+          : undefined,
       },
       // Pre-fills the buyer's email on Square's hosted checkout page so
       // they don't have to retype what they already gave us.
@@ -255,11 +313,19 @@ export async function createPaymentLink(
   }
 
   const data = await res.json();
+  // Square returns the order it just built (including the computed tax)
+  // alongside the payment link itself — reading the real total from there
+  // instead of recomputing it ourselves means the amount encoded into
+  // CheckoutContext (used by /checkout/success's fallback order-matching)
+  // can never drift from what Square actually charges, even by a rounding
+  // cent.
+  const createdOrder = data.related_resources?.orders?.[0];
   return {
     id: data.payment_link.id,
     orderId: data.payment_link.order_id,
     url: data.payment_link.url,
     version: data.payment_link.version,
+    totalCents: createdOrder?.total_money?.amount ?? 0,
   };
 }
 
@@ -305,10 +371,16 @@ export type OrderSummary = {
   createdAt: string;
   state: string;
   totalCents: number;
+  totalTaxCents: number;
   lineItems: {
     name: string;
     quantity: string;
     note?: string;
+    // Pre-tax (gross_sales_money), not total_money — total_money folds each
+    // line's share of the order-level tax in, which would otherwise make a
+    // receipt show "1x Alfajor $5.44" with no explanation. totalTaxCents
+    // above is the one clean, order-level tax line a receipt/email should
+    // actually show instead.
     totalCents: number;
   }[];
 };
@@ -319,11 +391,12 @@ function mapOrderSummary(o: SquareObject): OrderSummary {
     createdAt: o.created_at,
     state: o.state,
     totalCents: o.total_money?.amount ?? 0,
+    totalTaxCents: o.total_tax_money?.amount ?? 0,
     lineItems: (o.line_items ?? []).map((li: SquareObject) => ({
       name: li.name,
       quantity: li.quantity,
       note: li.note,
-      totalCents: li.total_money?.amount ?? 0,
+      totalCents: li.gross_sales_money?.amount ?? li.total_money?.amount ?? 0,
     })),
   };
 }

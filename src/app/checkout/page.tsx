@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getUpcomingEvents } from "@/lib/events";
 import { getDeliveryZones } from "@/lib/delivery-pricing";
+import { getActiveSalesTax } from "@/lib/square";
 import CheckoutClient from "@/components/CheckoutClient";
 
 export const revalidate = 300;
@@ -13,6 +14,14 @@ export const metadata: Metadata = {
 export default async function CheckoutPage() {
   const events = await getUpcomingEvents();
   const deliveryZones = await getDeliveryZones();
+  const salesTax = await getActiveSalesTax();
 
-  return <CheckoutClient events={events} deliveryZones={deliveryZones} />;
+  return (
+    <CheckoutClient
+      events={events}
+      deliveryZones={deliveryZones}
+      taxRate={salesTax?.rate ?? null}
+      taxName={salesTax?.name ?? null}
+    />
+  );
 }
