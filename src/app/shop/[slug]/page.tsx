@@ -5,7 +5,7 @@ import { getCatalogItems, formatPrice } from "@/lib/square";
 import { flavorInfo } from "@/lib/flavor-info";
 import AddToCart from "@/components/AddToCart";
 import Accordion from "@/components/Accordion";
-import AllergenLegend, { VegBadge } from "@/components/AllergenLegend";
+import AllergenLegend, { VegBadge, AllergenTags } from "@/components/AllergenLegend";
 
 export const revalidate = 300;
 
@@ -83,6 +83,9 @@ export default async function ProductPage({
                             {flavor.vegetarian && <VegBadge />}
                           </p>
                           <p className="mt-1 text-sm">{flavor.ingredients}</p>
+                          <div className="mt-1.5">
+                            <AllergenTags allergens={flavor.allergens} />
+                          </div>
                         </div>
                       ))}
                   </div>

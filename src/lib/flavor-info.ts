@@ -1,3 +1,5 @@
+export type Allergen = "wheat" | "dairy" | "egg";
+
 export type FlavorInfo = {
   name: string;
   image: string | null;
@@ -5,6 +7,14 @@ export type FlavorInfo = {
   ingredients: string;
   // Shown as a "(V)" tag next to the flavor name wherever it's listed.
   vegetarian?: boolean;
+  // Allergens actually present in THIS filling, for the per-flavor tags next
+  // to the ingredient list. Every flavor's dough is wheat, so "wheat" is on
+  // all eight — this isn't about the universal egg-wash brushed on every
+  // empanada before baking (that stays a blanket note in AllergenLegend);
+  // "egg" here means egg is an actual filling ingredient, which today is
+  // just the hard-boiled egg in Beef Malbec. "dairy" means a filling
+  // ingredient like cheese, cream, or butter.
+  allergens: Allergen[];
 };
 
 export const flavorInfo: FlavorInfo[] = [
@@ -15,6 +25,7 @@ export const flavorInfo: FlavorInfo[] = [
       "Slow-cooked beef, tender and flavorful, marinated in Argentine Malbec wine. Rich, juicy, and deeply savory.",
     ingredients:
       "Beef, onion, red bell pepper, green scallions, Malbec wine, hard-boiled egg, paprika, black pepper, salt, empanada dough (wheat flour, salt, sunflower oil).",
+    allergens: ["wheat", "egg"],
   },
   {
     name: "Chicken Scallion",
@@ -23,6 +34,7 @@ export const flavorInfo: FlavorInfo[] = [
       "Creamy chicken filling with fresh scallions, perfectly balanced and comforting, with a smooth and savory finish.",
     ingredients:
       "Chicken, onion, green scallions, butter, olive oil, black pepper, smoked paprika, garlic powder, salt, empanada dough (wheat flour, salt, sunflower oil).",
+    allergens: ["wheat", "dairy"],
   },
   {
     name: "Fugazzeta",
@@ -32,6 +44,7 @@ export const flavorInfo: FlavorInfo[] = [
     ingredients:
       "Caramelized onion, mozzarella cheese, salt, oregano, black pepper, empanada dough (wheat flour, salt, sunflower oil).",
     vegetarian: true,
+    allergens: ["wheat", "dairy"],
   },
   {
     name: "Ham & Cheese",
@@ -40,6 +53,7 @@ export const flavorInfo: FlavorInfo[] = [
       "Classic ham and melted cheese wrapped in a golden baked crust. Simple, comforting, and always a favorite.",
     ingredients:
       "Ham, mozzarella cheese, empanada dough (wheat flour, butter).",
+    allergens: ["wheat", "dairy"],
   },
   {
     name: "Spinach White",
@@ -49,6 +63,7 @@ export const flavorInfo: FlavorInfo[] = [
     ingredients:
       "Spinach, white (bechamel) sauce, mozzarella cheese, nutmeg, empanada dough (wheat flour, butter).",
     vegetarian: true,
+    allergens: ["wheat", "dairy"],
   },
   {
     name: "Pork BBQ",
@@ -57,6 +72,7 @@ export const flavorInfo: FlavorInfo[] = [
       "Slow-cooked pulled pork tossed in smoky BBQ sauce with melted cheese. Sweet, smoky, and satisfying.",
     ingredients:
       "Pulled pork, BBQ sauce, onion, garlic, salt, smoked paprika, empanada dough (wheat flour, salt, sunflower oil).",
+    allergens: ["wheat"],
   },
   {
     name: "Buffalo Chicken",
@@ -65,6 +81,7 @@ export const flavorInfo: FlavorInfo[] = [
       "Shredded chicken tossed in spicy buffalo sauce with a touch of cream cheese. Bold, tangy, and packs some heat.",
     ingredients:
       "Chicken, buffalo sauce, cream cheese, mozzarella cheese, green scallions, spices, empanada dough (wheat flour, salt, sunflower oil).",
+    allergens: ["wheat", "dairy"],
   },
   {
     name: "Cheeseburger",
@@ -73,5 +90,6 @@ export const flavorInfo: FlavorInfo[] = [
       "Juicy seasoned beef, crispy bacon, and melted cheddar cheese, all wrapped in our handmade dough and baked to perfection.",
     ingredients:
       "Beef, bacon, cheddar cheese, empanada dough (wheat flour, butter).",
+    allergens: ["wheat", "dairy"],
   },
 ];

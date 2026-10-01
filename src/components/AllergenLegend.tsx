@@ -1,3 +1,5 @@
+import type { Allergen } from "@/lib/flavor-info";
+
 // Small reusable "(V)" vegetarian marker — green is the universal menu
 // convention for vegetarian, kept separate from the brand's warm palette on
 // purpose so it still reads instantly next to a flavor name.
@@ -9,6 +11,22 @@ export function VegBadge() {
   );
 }
 
+const ALLERGEN_META: Record<
+  Allergen,
+  { icon: string; label: string; tone: "terracotta" | "blue" | "cream" }
+> = {
+  wheat: { icon: "🌾", label: "Wheat / Gluten", tone: "terracotta" },
+  dairy: { icon: "🥛", label: "Dairy", tone: "blue" },
+  egg: { icon: "🥚", label: "Egg", tone: "cream" },
+};
+
+const TONE_CLASSES = {
+  terracotta: "border-terracotta/25 bg-terracotta/10 text-rust",
+  blue: "border-dusty-blue/50 bg-dusty-blue/20 text-maroon",
+  cream: "border-maroon/15 bg-background text-maroon",
+  green: "border-green-200 bg-green-100 text-green-700",
+};
+
 function AllergenChip({
   icon,
   label,
@@ -16,21 +34,39 @@ function AllergenChip({
 }: {
   icon: string;
   label: string;
-  tone: "terracotta" | "blue" | "cream" | "green";
+  tone: keyof typeof TONE_CLASSES;
 }) {
-  const toneClasses = {
-    terracotta: "border-terracotta/25 bg-terracotta/10 text-rust",
-    blue: "border-dusty-blue/50 bg-dusty-blue/20 text-maroon",
-    cream: "border-maroon/15 bg-background text-maroon",
-    green: "border-green-200 bg-green-100 text-green-700",
-  }[tone];
-
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold ${toneClasses}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold ${TONE_CLASSES[tone]}`}
     >
       <span className="text-base leading-none">{icon}</span>
       {label}
+    </span>
+  );
+}
+
+// Compact per-flavor version of the chips above — only the allergens that
+// flavor's own filling actually contains (see the `allergens` field in
+// flavor-info.ts), for next to each ingredient list. Deliberately smaller
+// and icon-only so a row of three doesn't overwhelm a single flavor line.
+export function AllergenTags({ allergens }: { allergens: Allergen[] }) {
+  if (allergens.length === 0) return null;
+  return (
+    <span className="inline-flex items-center gap-1 align-middle">
+      {allergens.map((a) => {
+        const meta = ALLERGEN_META[a];
+        return (
+          <span
+            key={a}
+            title={meta.label}
+            className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-xs font-semibold ${TONE_CLASSES[meta.tone]}`}
+          >
+            <span className="leading-none">{meta.icon}</span>
+            {meta.label}
+          </span>
+        );
+      })}
     </span>
   );
 }
