@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import {
   getOrderById,
@@ -18,6 +19,11 @@ import { PICKUP_ADDRESS } from "@/lib/business-info";
 import CheckoutSuccessClient from "@/components/CheckoutSuccessClient";
 
 const MATCH_WINDOW_MS = 30 * 60 * 1000;
+
+export const metadata: Metadata = {
+  title: "Order Confirmed",
+  robots: { index: false, follow: true },
+};
 
 export default async function CheckoutSuccessPage({
   searchParams,

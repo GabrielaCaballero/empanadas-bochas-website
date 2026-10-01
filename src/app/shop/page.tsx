@@ -1,8 +1,16 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { getCatalogItems, formatPrice } from "@/lib/square";
 
 export const revalidate = 300;
+
+export const metadata: Metadata = {
+  title: "Shop",
+  description:
+    "Order homemade Argentine empanadas online in NYC — boxes of 3, 6, or 12, plus sauces and alfajores. Pickup or delivery.",
+  alternates: { canonical: "/shop" },
+};
 
 export default async function ShopPage() {
   const items = await getCatalogItems();

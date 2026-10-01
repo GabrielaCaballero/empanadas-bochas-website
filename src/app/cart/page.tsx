@@ -1,8 +1,16 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getCatalogItems } from "@/lib/square";
 import CartClient from "@/components/CartClient";
 
 export const revalidate = 300;
+
+// Per-visitor and transactional, not content — shouldn't compete with the
+// actual menu/content pages for search ranking.
+export const metadata: Metadata = {
+  title: "Your Cart",
+  robots: { index: false, follow: true },
+};
 
 export default async function CartPage() {
   const items = await getCatalogItems();

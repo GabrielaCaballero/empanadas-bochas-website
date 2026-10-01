@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import NycSkyline from "@/components/NycSkyline";
 import {
@@ -68,6 +69,13 @@ const details = [
     icon: <InstagramIcon />,
   },
 ];
+
+export const metadata: Metadata = {
+  title: "Contact",
+  description:
+    "Get in touch with Empanadas Bochas — message us on WhatsApp or Instagram, or stop by for pickup in Long Island City, NYC.",
+  alternates: { canonical: "/contact" },
+};
 
 export default function ContactPage() {
   return (
