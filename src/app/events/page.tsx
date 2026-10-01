@@ -1,7 +1,15 @@
+import type { Metadata } from "next";
 import { getEvents } from "@/lib/events";
 import EventsCalendar from "@/components/EventsCalendar";
 
 export const revalidate = 300;
+
+export const metadata: Metadata = {
+  title: "Upcoming Events",
+  description:
+    "Find Empanadas Bochas this month — we pour at breweries and pop-ups around NYC. Check the calendar for dates, times, and locations.",
+  alternates: { canonical: "/events" },
+};
 
 export default async function EventsPage() {
   const events = await getEvents();

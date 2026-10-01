@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -7,6 +8,31 @@ import Accordion from "@/components/Accordion";
 import AllergenLegend from "@/components/AllergenLegend";
 
 export const revalidate = 300;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const items = await getCatalogItems();
+  const item = items.find((i) => i.id === slug);
+  if (!item) return {};
+
+  const name = item.name.trim();
+  const description =
+    item.description ??
+    `Order ${name} online from Empanadas Bochas — homemade Argentine empanadas in NYC, pickup or delivery.`;
+
+  return {
+    title: name,
+    description,
+    alternates: { canonical: `/shop/${item.id}` },
+    openGraph: item.imageUrl
+      ? { title: name, description, images: [item.imageUrl] }
+      : { title: name, description },
+  };
+}
 
 export default async function ProductPage({
   params,
@@ -22,8 +48,32 @@ export default async function ProductPage({
   const price = formatPrice(item.variations[0]?.priceCents ?? null);
   const related = items.filter((i) => i.id !== item.id).slice(0, 3);
 
+  // Lets Google (and LLMs that crawl/retrieve product pages) see this as a
+  // real, priced product rather than just a page of text — the same facts
+  // already shown on the page, just in a structured form crawlers parse
+  // directly instead of having to guess from the rendered layout.
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: item.name.trim(),
+    description: item.description ?? undefined,
+    image: item.imageUrl ?? undefined,
+    offers: item.variations[0]?.priceCents
+      ? {
+          "@type": "Offer",
+          price: (item.variations[0].priceCents / 100).toFixed(2),
+          priceCurrency: "USD",
+          availability: "https://schema.org/InStock",
+        }
+      : undefined,
+  };
+
   return (
     <section className="mx-auto w-full max-w-6xl flex-1 px-6 py-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
       <div className="grid gap-10 sm:grid-cols-2">
         <div className="relative aspect-square overflow-hidden rounded-2xl bg-cream">
           {item.imageUrl && (

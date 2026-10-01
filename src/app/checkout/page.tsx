@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import { getUpcomingEvents } from "@/lib/events";
 import { getDeliveryZones } from "@/lib/delivery-pricing";
 import CheckoutClient from "@/components/CheckoutClient";
 
 export const revalidate = 300;
+
+export const metadata: Metadata = {
+  title: "Checkout",
+  robots: { index: false, follow: true },
+};
 
 export default async function CheckoutPage() {
   const events = await getUpcomingEvents();
