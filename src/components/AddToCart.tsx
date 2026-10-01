@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import type { CatalogItem } from "@/lib/square";
 import { flavorInfo } from "@/lib/flavor-info";
-import { VegBadge } from "@/components/AllergenLegend";
+import { VegBadge, AllergenTags } from "@/components/AllergenLegend";
 
 // Box of 12 runs a "buy 12, get 2 free" promo — customers pick 14 flavors
 // total and receive 14 empanadas, still charged the $60 Box-of-12 price.
@@ -35,6 +35,24 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
   const [quantity, setQuantity] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
   const [lastAddedCount, setLastAddedCount] = useState(0);
+  // Which flavor rows have their ingredients/allergens expanded — collapsed
+  // by default so the picker doesn't repeat the same flavor list twice
+  // (once to pick, once to read ingredients further down the page).
+  const [expandedFlavors, setExpandedFlavors] = useState<Set<string>>(
+    new Set(),
+  );
+
+  function toggleExpanded(flavor: string) {
+    setExpandedFlavors((prev) => {
+      const next = new Set(prev);
+      if (next.has(flavor)) {
+        next.delete(flavor);
+      } else {
+        next.add(flavor);
+      }
+      return next;
+    });
+  }
 
   const totalFlavorsSelected = Object.values(flavorCounts).reduce(
     (a, b) => a + b,
@@ -95,49 +113,78 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
             {item.flavors!.map((flavor) => {
               const info = flavorInfo.find((f) => f.name === flavor);
               const count = flavorCounts[flavor] ?? 0;
+              const expanded = expandedFlavors.has(flavor);
               return (
                 <div
                   key={flavor}
-                  className={`flex items-center gap-3 rounded-2xl border p-2 transition-colors ${
+                  className={`rounded-2xl border transition-colors ${
                     count > 0
                       ? "border-terracotta bg-terracotta/5"
                       : "border-maroon/10"
                   }`}
                 >
-                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-cream">
-                    {info?.image && (
-                      <Image
-                        src={info.image}
-                        alt={flavor}
-                        fill
-                        className="object-cover"
-                        sizes="56px"
-                      />
-                    )}
-                  </div>
-                  <span className="flex-1 text-sm font-medium text-maroon">
-                    {flavor}
-                    {info?.vegetarian && <VegBadge />}
-                  </span>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 p-2">
+                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-cream">
+                      {info?.image && (
+                        <Image
+                          src={info.image}
+                          alt={flavor}
+                          fill
+                          className="object-cover"
+                          sizes="56px"
+                        />
+                      )}
+                    </div>
                     <button
                       type="button"
-                      onClick={() => changeFlavor(flavor, -1)}
-                      className="flex h-7 w-7 items-center justify-center rounded-full border border-maroon/30 text-maroon"
+                      onClick={() => toggleExpanded(flavor)}
+                      aria-expanded={expanded}
+                      className="flex flex-1 items-center gap-1.5 text-left text-sm font-medium text-maroon"
                     >
-                      −
+                      {flavor}
+                      {info?.vegetarian && <VegBadge />}
+                      <span
+                        className={`ml-0.5 text-maroon/40 transition-transform ${expanded ? "rotate-180" : ""}`}
+                        aria-hidden="true"
+                      >
+                        ⌄
+                      </span>
                     </button>
-                    <span className="w-4 text-center text-maroon">
-                      {count}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => changeFlavor(flavor, 1)}
-                      className="flex h-7 w-7 items-center justify-center rounded-full border border-maroon/30 text-maroon"
-                    >
-                      +
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => changeFlavor(flavor, -1)}
+                        className="flex h-7 w-7 items-center justify-center rounded-full border border-maroon/30 text-maroon"
+                      >
+                        −
+                      </button>
+                      <span className="w-4 text-center text-maroon">
+                        {count}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => changeFlavor(flavor, 1)}
+                        className="flex h-7 w-7 items-center justify-center rounded-full border border-maroon/30 text-maroon"
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
+
+                  {expanded && (
+                    <div className="px-2 pb-3 pl-[4.5rem]">
+                      {info?.ingredients && (
+                        <p className="text-xs text-maroon/70">
+                          {info.ingredients}
+                        </p>
+                      )}
+                      {info?.allergens && (
+                        <div className="mt-1.5">
+                          <AllergenTags allergens={info.allergens} />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}

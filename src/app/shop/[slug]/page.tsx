@@ -2,10 +2,9 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { getCatalogItems, formatPrice } from "@/lib/square";
-import { flavorInfo } from "@/lib/flavor-info";
 import AddToCart from "@/components/AddToCart";
 import Accordion from "@/components/Accordion";
-import AllergenLegend, { VegBadge, AllergenTags } from "@/components/AllergenLegend";
+import AllergenLegend from "@/components/AllergenLegend";
 
 export const revalidate = 300;
 
@@ -72,24 +71,6 @@ export default async function ProductPage({
           <div className="mt-10">
             {item.flavors && (
               <>
-                <Accordion title="Flavors & Ingredients" defaultOpen>
-                  <div className="flex flex-col gap-4">
-                    {flavorInfo
-                      .filter((f) => item.flavors!.includes(f.name))
-                      .map((flavor) => (
-                        <div key={flavor.name}>
-                          <p className="font-semibold text-maroon">
-                            {flavor.name}
-                            {flavor.vegetarian && <VegBadge />}
-                          </p>
-                          <p className="mt-1 text-sm">{flavor.ingredients}</p>
-                          <div className="mt-1.5">
-                            <AllergenTags allergens={flavor.allergens} />
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                </Accordion>
                 <Accordion title="Allergens & Dietary Info">
                   <AllergenLegend />
                 </Accordion>
