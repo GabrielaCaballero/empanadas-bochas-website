@@ -95,6 +95,30 @@ matching total**, taking the first (most recent) result
   order separately first (`POST /v2/orders` then reference it), which
   seemed like the obvious approach but isn't supported by this endpoint.
 
+### 8. No rate limiting on `/api/checkout`
+
+**Symptom:** none reported — found while reviewing a sister project's
+backend rewrite ([Caballero Propiedades v2](https://github.com/jujuyempresa-max/cp)),
+which added `express-rate-limit` for exactly this reason. This route
+creates a real Square order on every call, even one that never completes
+payment — a script hammering it costs nothing in actual money but litters
+the Square dashboard with draft orders and burns API quota.
+
+**Fix:** `src/lib/rate-limit.ts` — a simple in-memory per-IP limiter (10
+requests/minute), checked first thing in `/api/checkout`. Verified
+directly: the 11th rapid-fire request from the same IP within a minute
+gets a 429 with the usual WhatsApp-backed error UI.
+
+**Known limitation, by design:** this is an in-memory `Map`, not a shared
+store. Vercel can run multiple instances of this route concurrently, each
+with its own copy, and a cold start wipes it — so it's a deterrent against
+one script hammering from one place, not a hard guarantee against a
+distributed attempt. That tradeoff is intentional: a real shared-state
+limiter (Vercel KV/Upstash) means a new paid dependency and more moving
+parts, which isn't worth it at this app's traffic. Revisit if order volume
+ever grows enough to make a determined, distributed abuse attempt
+plausible.
+
 ## Documented, not fixed (lower priority / bigger lift)
 
 ### 4. The total+recency fallback is still theoretically collision-prone

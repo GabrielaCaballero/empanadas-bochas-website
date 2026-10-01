@@ -22,7 +22,7 @@ export const flavorInfo: FlavorInfo[] = [
     name: "Beef Malbec",
     image: "/menu/beef-malbec.webp",
     description:
-      "Slow-cooked beef, tender and flavorful, marinated in Argentine Malbec wine. Rich, juicy, and deeply savory.",
+      "4-hour slow-cooked beef, tender and flavorful, marinated in Argentine Malbec wine. Rich, juicy, and deeply savory.",
     ingredients:
       "Beef, onion, red bell pepper, green scallions, Malbec wine, hard-boiled egg, paprika, black pepper, salt, empanada dough (wheat flour, salt, sunflower oil).",
     allergens: ["wheat", "egg"],
@@ -59,7 +59,7 @@ export const flavorInfo: FlavorInfo[] = [
     name: "Spinach White",
     image: "/menu/spinach-white.webp",
     description:
-      "Spinach folded into a creamy white sauce with mozzarella and a touch of nutmeg. Comforting, earthy, and rich.",
+      "Spinach folded into a rich béchamel sauce with mozzarella and a touch of Parmesan and nutmeg. Comforting, earthy, and delicious.",
     ingredients:
       "Spinach, white (bechamel) sauce, mozzarella cheese, nutmeg, empanada dough (wheat flour, butter).",
     vegetarian: true,
@@ -69,7 +69,7 @@ export const flavorInfo: FlavorInfo[] = [
     name: "Pork BBQ",
     image: "/menu/pork-bbq.webp",
     description:
-      "Slow-cooked pulled pork tossed in smoky BBQ sauce with melted cheese. Sweet, smoky, and satisfying.",
+      "Slow-cooked pulled pork tossed in smoky BBQ sauce with fresh scallions. Sweet, smoky, and deeply satisfying.",
     ingredients:
       "Pulled pork, BBQ sauce, onion, garlic, salt, smoked paprika, empanada dough (wheat flour, salt, sunflower oil).",
     allergens: ["wheat"],
@@ -78,7 +78,7 @@ export const flavorInfo: FlavorInfo[] = [
     name: "Buffalo Chicken",
     image: "/menu/buffalo-chicken.webp",
     description:
-      "Shredded chicken tossed in spicy buffalo sauce with a touch of cream cheese. Bold, tangy, and packs some heat.",
+      "Shredded chicken tossed in spicy buffalo sauce with cream cheese and melted mozzarella cheese. Bold, tangy, and packs the perfect heat.",
     ingredients:
       "Chicken, buffalo sauce, cream cheese, mozzarella cheese, green scallions, spices, empanada dough (wheat flour, salt, sunflower oil).",
     allergens: ["wheat", "dairy"],
