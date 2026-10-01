@@ -158,62 +158,146 @@ export type CheckoutLineItem = {
   note?: string;
 };
 
+type SquareErrorDetail = {
+  category?: string;
+  code?: string;
+  detail?: string;
+  field?: string;
+};
+
+// Square's error responses are structured (a list of {category, code,
+// detail, field}), but a plain Error swallows that into one opaque string —
+// which is exactly how a malformed-but-HTML5-valid email (e.g. "a@gmail"
+// with no TLD) used to surface to the customer as a bare "Could not create
+// payment link" with no indication of what was actually wrong. Parsing it
+// here lets callers (the checkout route) show a targeted message instead.
+export class SquareApiError extends Error {
+  status: number;
+  errors: SquareErrorDetail[];
+
+  constructor(status: number, rawBody: string) {
+    let errors: SquareErrorDetail[] = [];
+    try {
+      const parsed = JSON.parse(rawBody);
+      if (Array.isArray(parsed?.errors)) errors = parsed.errors;
+    } catch {
+      // Square almost always returns JSON on an error response, but this
+      // guards against the rare case it doesn't rather than throwing while
+      // already handling an error.
+    }
+    super(`Square API error (${status}): ${errors[0]?.detail ?? rawBody}`);
+    this.name = "SquareApiError";
+    this.status = status;
+    this.errors = errors;
+  }
+
+  isEmailError(): boolean {
+    return this.errors.some(
+      (e) =>
+        e.field?.toLowerCase().includes("email") ||
+        e.code?.toUpperCase().includes("EMAIL"),
+    );
+  }
+}
+
 // Line items are ad-hoc (name + price) rather than referencing catalog
 // objects, since Square requires a location-scoped catalog reference for
 // that and this checkout intentionally stays simple/itemized-by-name.
+//
+// Created WITHOUT a redirect_url, then set in a second call
+// (setPaymentLinkRedirect below) — not because Square can't take one here,
+// but because the redirect URL needs to encode the order's own ID (see
+// getOrderById further down this file) for /checkout/success to look the
+// order up directly, and that ID isn't known until THIS call returns.
+// Square's Payment Links API doesn't support creating a link against a
+// pre-existing order (confirmed directly against the sandbox: order.id is
+// rejected as "Read-only field is calculated and cannot be set by a
+// client" even alongside a full order body) — so the order has to be
+// created here, inline, same as before.
 export async function createPaymentLink(
   lineItems: CheckoutLineItem[],
-  redirectUrl?: string,
   buyerEmail?: string,
-): Promise<{ id: string; url: string; orderId: string }> {
+): Promise<{ id: string; url: string; orderId: string; version: number }> {
   const { token, locationId, baseUrl } = checkoutCredentials();
 
+  const res = await fetch(`${baseUrl}/v2/online-checkout/payment-links`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Square-Version": SQUARE_VERSION,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      idempotency_key: crypto.randomUUID(),
+      order: {
+        location_id: locationId,
+        line_items: lineItems.map((item) => ({
+          name: item.name,
+          quantity: String(item.quantity),
+          note: item.note,
+          base_price_money: {
+            amount: item.unitPriceCents,
+            currency: "USD",
+          },
+        })),
+      },
+      // Pre-fills the buyer's email on Square's hosted checkout page so
+      // they don't have to retype what they already gave us.
+      pre_populated_data: buyerEmail
+        ? { buyer_email: buyerEmail }
+        : undefined,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new SquareApiError(res.status, body);
+  }
+
+  const data = await res.json();
+  return {
+    id: data.payment_link.id,
+    orderId: data.payment_link.order_id,
+    url: data.payment_link.url,
+    version: data.payment_link.version,
+  };
+}
+
+// Attaches checkout_options.redirect_url to an already-created payment
+// link (see createPaymentLink's doc comment for why this is split out) —
+// confirmed working directly against the sandbox API. `version` is Square's
+// optimistic-concurrency field, required on any update and always the one
+// just returned from createPaymentLink since nothing else modifies the
+// link in between.
+export async function setPaymentLinkRedirect(
+  paymentLinkId: string,
+  version: number,
+  redirectUrl: string,
+): Promise<void> {
+  const { token, baseUrl } = checkoutCredentials();
+
   const res = await fetch(
-    `${baseUrl}/v2/online-checkout/payment-links`,
+    `${baseUrl}/v2/online-checkout/payment-links/${paymentLinkId}`,
     {
-      method: "POST",
+      method: "PUT",
       headers: {
         Authorization: `Bearer ${token}`,
         "Square-Version": SQUARE_VERSION,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        idempotency_key: crypto.randomUUID(),
-        order: {
-          location_id: locationId,
-          line_items: lineItems.map((item) => ({
-            name: item.name,
-            quantity: String(item.quantity),
-            note: item.note,
-            base_price_money: {
-              amount: item.unitPriceCents,
-              currency: "USD",
-            },
-          })),
+        payment_link: {
+          version,
+          checkout_options: { redirect_url: redirectUrl },
         },
-        checkout_options: redirectUrl
-          ? { redirect_url: redirectUrl }
-          : undefined,
-        // Pre-fills the buyer's email on Square's hosted checkout page so
-        // they don't have to retype what they already gave us.
-        pre_populated_data: buyerEmail
-          ? { buyer_email: buyerEmail }
-          : undefined,
       }),
     },
   );
 
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`Square payment link request failed: ${res.status} ${body}`);
+    throw new SquareApiError(res.status, body);
   }
-
-  const data = await res.json();
-  return {
-    id: data.payment_link.id,
-    url: data.payment_link.url,
-    orderId: data.payment_link.order_id,
-  };
 }
 
 export type OrderSummary = {
@@ -251,14 +335,49 @@ function isPaidOrderState(state: string) {
   return state !== "DRAFT" && state !== "CANCELED";
 }
 
-// Finds the order a just-completed checkout redirect refers to: there's no
-// order ID to match on directly (see /checkout/success), so the best signal
-// is a recent paid order with a matching total. This deliberately doesn't
-// filter by customer/email — Square's hosted checkout doesn't reliably
-// attach a customer record to every completed order (confirmed via sandbox
-// testing, where the "Test Payment" simulator never does), so matching on
-// total+recency against ALL recent orders at this location is the more
-// robust signal for a low-volume business like this one.
+// Direct lookup by ID — Square's strongly-consistent read path, unlike
+// /v2/orders/search below (confirmed via direct sandbox testing: a
+// just-created order was immediately found by ID but NOT yet by search,
+// even several seconds later and with zero filters). This is now the
+// primary way /checkout/success resolves the order it was redirected for,
+// since the order ID is known at payment-link-creation time and threaded
+// through via CheckoutContext — findRecentMatchingOrder below is kept only
+// as a fallback (an in-flight redirect link from before this existed, or a
+// transient failure on this call).
+export async function getOrderById(orderId: string): Promise<OrderSummary | null> {
+  const { token, locationId, baseUrl } = checkoutCredentials();
+
+  const res = await fetch(`${baseUrl}/v2/orders/${orderId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Square-Version": SQUARE_VERSION,
+    },
+  });
+
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    throw new Error(`Square order lookup failed: ${res.status}`);
+  }
+
+  const data = await res.json();
+  const order = data.order;
+  // location_id is checked defensively — not expected to ever mismatch
+  // since the order was created against this same location, but a stray ID
+  // from another location should never be treated as this customer's order.
+  if (!order || order.location_id !== locationId) return null;
+  if (!isPaidOrderState(order.state)) return null;
+
+  return mapOrderSummary(order);
+}
+
+// Fallback only (see getOrderById above): finds a recent paid order by
+// matching total+recency rather than ID. This deliberately doesn't filter
+// by customer/email — Square's hosted checkout doesn't reliably attach a
+// customer record to every completed order (confirmed via sandbox testing,
+// where the "Test Payment" simulator never does). Known weakness: two
+// different customers checking out with the same total within the match
+// window can collide, since this returns the first (most recent) match
+// regardless of whose it actually is — exactly what getOrderById avoids.
 export function findRecentMatchingOrder(
   orders: OrderSummary[],
   totalCents: number,

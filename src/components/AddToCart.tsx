@@ -41,6 +41,11 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
   const [expandedFlavors, setExpandedFlavors] = useState<Set<string>>(
     new Set(),
   );
+  // The very first flavor someone picks auto-expands once, as a quick,
+  // self-demonstrating hint that the row is clickable to reveal ingredients
+  // — after that, it's left entirely up to the customer so picking several
+  // flavors in a row doesn't pile up a wall of open panels.
+  const [hasAutoExpandedOnce, setHasAutoExpandedOnce] = useState(false);
 
   function toggleExpanded(flavor: string) {
     setExpandedFlavors((prev) => {
@@ -64,11 +69,16 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
   );
 
   function changeFlavor(flavor: string, delta: number) {
+    const willAdd = delta > 0 && totalFlavorsSelected < required;
     setFlavorCounts((prev) => {
       const current = prev[flavor] ?? 0;
       if (delta > 0 && totalFlavorsSelected >= required) return prev;
       return { ...prev, [flavor]: Math.max(0, current + delta) };
     });
+    if (willAdd && !hasAutoExpandedOnce) {
+      setExpandedFlavors((prev) => new Set(prev).add(flavor));
+      setHasAutoExpandedOnce(true);
+    }
     setJustAdded(false);
   }
 
@@ -124,14 +134,14 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
                   }`}
                 >
                   <div className="flex items-center gap-3 p-2">
-                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-cream">
+                    <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-cream">
                       {info?.image && (
                         <Image
                           src={info.image}
                           alt={flavor}
                           fill
                           className="object-cover"
-                          sizes="56px"
+                          sizes="44px"
                         />
                       )}
                     </div>
@@ -172,9 +182,9 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
                   </div>
 
                   {expanded && (
-                    <div className="px-2 pb-3 pl-[4.5rem]">
+                    <div className="mx-2 mb-2 border-t border-maroon/10 pt-2">
                       {info?.ingredients && (
-                        <p className="text-xs text-maroon/70">
+                        <p className="text-xs leading-snug text-maroon/70">
                           {info.ingredients}
                         </p>
                       )}

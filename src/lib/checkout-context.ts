@@ -7,6 +7,13 @@ export type CheckoutContext = {
   email: string;
   phone: string;
   totalCents: number; // final charged total, including delivery fee if any
+  // The Square order created alongside the payment link, known before the
+  // buyer ever pays — lets /checkout/success look the order up directly by
+  // ID instead of guessing from recent orders by total+recency. Optional
+  // only so a ctx blob encoded by an older deploy (already in flight in
+  // someone's browser during a release) still decodes without crashing;
+  // every new checkout always sets it.
+  orderId?: string;
   fulfillment:
     | {
         kind: "event";

@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { createPaymentLink } from "@/lib/square";
+import {
+  createPaymentLink,
+  setPaymentLinkRedirect,
+  SquareApiError,
+} from "@/lib/square";
 import { buildSquareLineItems } from "@/lib/order-summary";
 import { getUpcomingEvents } from "@/lib/events";
 import { getDeliveryZones, computeDeliveryFeeCents } from "@/lib/delivery-pricing";
@@ -38,6 +42,22 @@ export async function POST(request: Request) {
   if (!customerName || !customerEmail || !customerPhone) {
     return NextResponse.json(
       { error: "Missing customer contact info" },
+      { status: 400 },
+    );
+  }
+  // Catches an incomplete address (e.g. "name@gmail" with no ".com") before
+  // it ever reaches Square — the native <input type="email"> the client
+  // uses does NOT require a dot after the @ per the HTML spec, so a
+  // address that's "valid enough" to submit the form can still be one
+  // Square's own API rejects, which used to surface only as an opaque
+  // "Could not create payment link" with no indication of why.
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!EMAIL_RE.test(customerEmail.trim())) {
+    return NextResponse.json(
+      {
+        error:
+          "That email address looks incomplete — please include a domain, like name@example.com.",
+      },
       { status: 400 },
     );
   }
@@ -118,26 +138,54 @@ export async function POST(request: Request) {
 
   // The cart is only cleared and confirmation emails are only sent once the
   // buyer actually completes payment on Square's page and lands back on
-  // /checkout/success — not here, since a payment link being created doesn't
-  // mean anyone has paid yet. Customer/fulfillment context rides along in the
-  // redirect URL since there's no order ID to key off until after payment.
+  // /checkout/success — not here, since the payment link existing doesn't
+  // mean anyone has paid yet. The payment link is created first (without a
+  // redirect_url — Square assigns the order's ID as part of this same
+  // call), then the redirect URL — which needs that order ID baked into it
+  // so /checkout/success can look the order up directly — is attached in a
+  // second call. See createPaymentLink's doc comment in square.ts for why
+  // it's split this way.
+  let paymentLink;
+  try {
+    paymentLink = await createPaymentLink(lineItems, customerEmail.trim());
+  } catch (err) {
+    console.error("Square payment link creation failed", err);
+    // Still as specific as we can safely be about WHY, falling back to a
+    // generic message otherwise — the client always shows a WhatsApp
+    // fallback alongside it regardless of which message lands.
+    const message =
+      err instanceof SquareApiError && err.isEmailError()
+        ? "That email address doesn't look valid — please double-check it and try again."
+        : "We couldn't start checkout right now. Please try again in a moment.";
+    return NextResponse.json({ error: message }, { status: 502 });
+  }
+
   const ctx = encodeCheckoutContext({
     name: customerName,
     email: customerEmail,
     phone: customerPhone,
     totalCents: finalTotalCents,
     fulfillment: ctxFulfillment,
+    orderId: paymentLink.orderId,
   });
   const origin = new URL(request.url).origin;
   const redirectUrl = `${origin}/checkout/success?ctx=${ctx}`;
 
-  let paymentLink;
   try {
-    paymentLink = await createPaymentLink(lineItems, redirectUrl, customerEmail);
+    await setPaymentLinkRedirect(paymentLink.id, paymentLink.version, redirectUrl);
   } catch (err) {
-    console.error("Square payment link creation failed", err);
+    // The payment link itself was created successfully at this point — only
+    // the redirect attach failed — but without it the buyer would land on
+    // Square's generic "Thank you" page instead of ours, with no order
+    // confirmation email triggered. Safer to fail the whole checkout here
+    // (same WhatsApp-backed error experience as above) than hand back a
+    // link that silently skips our confirmation flow.
+    console.error("Square payment link redirect attach failed", err);
     return NextResponse.json(
-      { error: "Could not create payment link" },
+      {
+        error:
+          "We couldn't start checkout right now. Please try again in a moment.",
+      },
       { status: 502 },
     );
   }

@@ -11,6 +11,14 @@ import { whatsAppUrl, PICKUP_ADDRESS } from "@/lib/business-info";
 type TopChoice = "pickup" | "delivery";
 type PickupChoice = "event" | "kitchen";
 
+// Checked client-side for instant feedback before the round-trip to
+// /api/checkout (which independently re-checks this server-side too — see
+// docs/checkout-edge-cases.md). Native <input type="email"> does NOT
+// require a dot after the @ per the HTML spec, so "name@gmail" passes
+// browser validation but Square's API rejects it — this is what used to
+// surface as an opaque "Could not create payment link".
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function formatEventOptionLabel(event: EventEntry) {
   const date = new Date(`${event.date}T00:00:00`).toLocaleDateString(
     "en-US",
@@ -178,6 +186,14 @@ export default function CheckoutClient({
     e.preventDefault();
     if (!selection) return;
 
+    const trimmedEmail = email.trim();
+    if (!EMAIL_RE.test(trimmedEmail)) {
+      setError(
+        "That email address looks incomplete — please include a domain, like name@example.com.",
+      );
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
     try {
@@ -187,9 +203,9 @@ export default function CheckoutClient({
         body: JSON.stringify({
           items,
           totalCents: grandTotalCents,
-          customerName: name,
-          customerEmail: email,
-          customerPhone: phone,
+          customerName: name.trim(),
+          customerEmail: trimmedEmail,
+          customerPhone: phone.trim(),
           fulfillment:
             selection.kind === "event"
               ? {
@@ -392,7 +408,25 @@ export default function CheckoutClient({
             phone={phone}
             setPhone={setPhone}
           />
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+              <p className="text-sm font-medium text-red-700">{error}</p>
+              <p className="mt-1 text-sm text-red-700/80">
+                Running into this more than once? We can take your order
+                directly instead.
+              </p>
+              <a
+                href={whatsAppUrl(
+                  `Hi! I ran into an error trying to check out on the website: "${error}"`,
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-block rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700"
+              >
+                Message us on WhatsApp
+              </a>
+            </div>
+          )}
           <button
             type="submit"
             disabled={submitting}
@@ -440,6 +474,11 @@ function ContactFields({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
+          // type="email" alone accepts "name@gmail" (no TLD required per the
+          // HTML spec) — this pattern is a second, stricter native check,
+          // on top of the JS check in handlePaidSubmit.
+          pattern="[^\s@]+@[^\s@]+\.[^\s@]+"
+          title="Include a domain, like name@example.com"
           className="mt-1 w-full rounded-xl border border-maroon/20 bg-background px-4 py-3 text-maroon"
         />
       </div>
