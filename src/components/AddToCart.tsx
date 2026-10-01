@@ -37,15 +37,13 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
   const [lastAddedCount, setLastAddedCount] = useState(0);
   // Which flavor rows have their ingredients/allergens expanded — collapsed
   // by default so the picker doesn't repeat the same flavor list twice
-  // (once to pick, once to read ingredients further down the page).
+  // (once to pick, once to read ingredients further down the page). Each
+  // newly-picked flavor auto-expands (see changeFlavor below) so customers
+  // see what they're adding without having to click the chevron themselves
+  // — they can still collapse any row manually afterward.
   const [expandedFlavors, setExpandedFlavors] = useState<Set<string>>(
     new Set(),
   );
-  // The very first flavor someone picks auto-expands once, as a quick,
-  // self-demonstrating hint that the row is clickable to reveal ingredients
-  // — after that, it's left entirely up to the customer so picking several
-  // flavors in a row doesn't pile up a wall of open panels.
-  const [hasAutoExpandedOnce, setHasAutoExpandedOnce] = useState(false);
 
   function toggleExpanded(flavor: string) {
     setExpandedFlavors((prev) => {
@@ -69,15 +67,18 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
   );
 
   function changeFlavor(flavor: string, delta: number) {
-    const willAdd = delta > 0 && totalFlavorsSelected < required;
+    const currentCount = flavorCounts[flavor] ?? 0;
+    const isNewlySelected =
+      delta > 0 && currentCount === 0 && totalFlavorsSelected < required;
     setFlavorCounts((prev) => {
       const current = prev[flavor] ?? 0;
       if (delta > 0 && totalFlavorsSelected >= required) return prev;
       return { ...prev, [flavor]: Math.max(0, current + delta) };
     });
-    if (willAdd && !hasAutoExpandedOnce) {
+    // Every time a flavor goes from unselected to selected, auto-expand its
+    // ingredients — not just the first one of the whole picker.
+    if (isNewlySelected) {
       setExpandedFlavors((prev) => new Set(prev).add(flavor));
-      setHasAutoExpandedOnce(true);
     }
     setJustAdded(false);
   }
