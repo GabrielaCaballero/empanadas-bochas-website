@@ -3,6 +3,8 @@ export type FlavorInfo = {
   image: string | null;
   description: string;
   ingredients: string;
+  // Shown as a "(V)" tag next to the flavor name wherever it's listed.
+  vegetarian?: boolean;
 };
 
 export const flavorInfo: FlavorInfo[] = [
@@ -12,7 +14,7 @@ export const flavorInfo: FlavorInfo[] = [
     description:
       "Slow-cooked beef, tender and flavorful, marinated in Argentine Malbec wine. Rich, juicy, and deeply savory.",
     ingredients:
-      "Beef, onion, red bell pepper, hard-boiled egg, green olives, cumin, paprika, Malbec wine, empanada dough (wheat flour, butter).",
+      "Beef, onion, red bell pepper, green scallions, Malbec wine, hard-boiled egg, paprika, black pepper, salt, empanada dough (wheat flour, salt, sunflower oil).",
   },
   {
     name: "Chicken Scallion",
@@ -20,7 +22,7 @@ export const flavorInfo: FlavorInfo[] = [
     description:
       "Creamy chicken filling with fresh scallions, perfectly balanced and comforting, with a smooth and savory finish.",
     ingredients:
-      "Chicken, scallions, cream, mozzarella cheese, empanada dough (wheat flour, butter).",
+      "Chicken, onion, green scallions, butter, olive oil, black pepper, smoked paprika, garlic powder, salt, empanada dough (wheat flour, salt, sunflower oil).",
   },
   {
     name: "Fugazzeta",
@@ -28,7 +30,8 @@ export const flavorInfo: FlavorInfo[] = [
     description:
       "Sweet caramelized onions and melted mozzarella cheese, inspired by the classic Argentine pizza. Bold, cheesy, and irresistible.",
     ingredients:
-      "Caramelized onion, mozzarella cheese, oregano, empanada dough (wheat flour, butter).",
+      "Caramelized onion, mozzarella cheese, salt, oregano, black pepper, empanada dough (wheat flour, salt, sunflower oil).",
+    vegetarian: true,
   },
   {
     name: "Ham & Cheese",
@@ -45,6 +48,7 @@ export const flavorInfo: FlavorInfo[] = [
       "Spinach folded into a creamy white sauce with mozzarella and a touch of nutmeg. Comforting, earthy, and rich.",
     ingredients:
       "Spinach, white (bechamel) sauce, mozzarella cheese, nutmeg, empanada dough (wheat flour, butter).",
+    vegetarian: true,
   },
   {
     name: "Pork BBQ",
@@ -52,7 +56,7 @@ export const flavorInfo: FlavorInfo[] = [
     description:
       "Slow-cooked pulled pork tossed in smoky BBQ sauce with melted cheese. Sweet, smoky, and satisfying.",
     ingredients:
-      "Pulled pork, BBQ sauce, mozzarella cheese, empanada dough (wheat flour, butter).",
+      "Pulled pork, BBQ sauce, onion, garlic, salt, smoked paprika, empanada dough (wheat flour, salt, sunflower oil).",
   },
   {
     name: "Buffalo Chicken",
@@ -60,7 +64,7 @@ export const flavorInfo: FlavorInfo[] = [
     description:
       "Shredded chicken tossed in spicy buffalo sauce with a touch of cream cheese. Bold, tangy, and packs some heat.",
     ingredients:
-      "Chicken, buffalo sauce, cream cheese, empanada dough (wheat flour, butter).",
+      "Chicken, buffalo sauce, cream cheese, mozzarella cheese, green scallions, spices, empanada dough (wheat flour, salt, sunflower oil).",
   },
   {
     name: "Cheeseburger",

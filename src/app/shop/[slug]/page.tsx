@@ -5,6 +5,7 @@ import { getCatalogItems, formatPrice } from "@/lib/square";
 import { flavorInfo } from "@/lib/flavor-info";
 import AddToCart from "@/components/AddToCart";
 import Accordion from "@/components/Accordion";
+import AllergenLegend from "@/components/AllergenLegend";
 
 export const revalidate = 300;
 
@@ -79,11 +80,19 @@ export default async function ProductPage({
                         <div key={flavor.name}>
                           <p className="font-semibold text-maroon">
                             {flavor.name}
+                            {flavor.vegetarian && (
+                              <span className="ml-1 font-normal text-maroon/50">
+                                (V)
+                              </span>
+                            )}
                           </p>
                           <p className="mt-1 text-sm">{flavor.ingredients}</p>
                         </div>
                       ))}
                   </div>
+                </Accordion>
+                <Accordion title="Allergens & Dietary Info">
+                  <AllergenLegend />
                 </Accordion>
                 <Accordion title="Storage & Reheating">
                   <p>

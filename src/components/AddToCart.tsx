@@ -116,6 +116,11 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
                   </div>
                   <span className="flex-1 text-sm font-medium text-maroon">
                     {flavor}
+                    {info?.vegetarian && (
+                      <span className="ml-1 font-normal text-maroon/50">
+                        (V)
+                      </span>
+                    )}
                   </span>
                   <div className="flex items-center gap-3">
                     <button

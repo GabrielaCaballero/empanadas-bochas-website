@@ -3,6 +3,7 @@ import Link from "next/link";
 import { flavorInfo } from "@/lib/flavor-info";
 import VideoHero from "@/components/VideoHero";
 import Testimonials from "@/components/Testimonials";
+import AllergenLegend from "@/components/AllergenLegend";
 
 const photos = [
   {
@@ -155,11 +156,20 @@ export default function Home() {
               <div>
                 <h3 className="font-display text-xl font-semibold text-maroon">
                   {flavor.name}
+                  {flavor.vegetarian && (
+                    <span className="ml-1 text-base font-normal text-maroon/50">
+                      (V)
+                    </span>
+                  )}
                 </h3>
                 <p className="mt-2 text-maroon/70">{flavor.description}</p>
               </div>
             </div>
           ))}
+        </div>
+
+        <div className="mt-10">
+          <AllergenLegend />
         </div>
       </section>
     </div>
