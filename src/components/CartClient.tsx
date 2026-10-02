@@ -409,7 +409,7 @@ export default function CartClient({
             {taxRate != null && (
               <div className="flex items-center justify-between">
                 <span>
-                  {taxName ?? "Tax"} ({(taxRate * 100).toFixed(3).replace(/\.?0+$/, "")}%)
+                  {taxName ?? "Tax"} ({(Math.round(taxRate * 10000) / 100).toFixed(2)}%)
                 </span>
                 <span>{formatPrice(taxCents)}</span>
               </div>

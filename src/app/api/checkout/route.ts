@@ -11,11 +11,12 @@ import { encodeCheckoutContext, type CheckoutContext } from "@/lib/checkout-cont
 import { PICKUP_ADDRESS } from "@/lib/business-info";
 import type { CartLineItem } from "@/lib/cart-context";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { isBookableWeekendDate, formatWeekendDate } from "@/lib/weekend-dates";
 
 type Fulfillment =
   | { kind: "event"; eventDate: string; venue: string }
-  | { kind: "kitchen" }
-  | { kind: "delivery"; zoneId: string; address: string };
+  | { kind: "kitchen"; date: string }
+  | { kind: "delivery"; zoneId: string; address: string; date: string };
 
 type RequestBody = {
   items: CartLineItem[];
@@ -113,13 +114,20 @@ export async function POST(request: Request) {
       eventAddress: event.address,
     };
   } else if (fulfillment.kind === "kitchen") {
+    // Re-validated server-side — never trust a client-sent date.
+    if (!isBookableWeekendDate(fulfillment.date)) {
+      return NextResponse.json(
+        { error: "Kitchen pickup is available on weekends only — please choose a Saturday or Sunday." },
+        { status: 400 },
+      );
+    }
     lineItems.push({
-      name: `Pickup: Our Kitchen, ${PICKUP_ADDRESS}`,
+      name: `Pickup: Our Kitchen, ${PICKUP_ADDRESS} — ${formatWeekendDate(fulfillment.date)}`,
       quantity: 1,
       unitPriceCents: 0,
     });
 
-    ctxFulfillment = { kind: "kitchen" };
+    ctxFulfillment = { kind: "kitchen", date: fulfillment.date };
   } else {
     if (!fulfillment.address) {
       return NextResponse.json(
@@ -138,9 +146,16 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!isBookableWeekendDate(fulfillment.date)) {
+      return NextResponse.json(
+        { error: "Delivery is available on weekends only — please choose a Saturday or Sunday." },
+        { status: 400 },
+      );
+    }
+
     const feeCents = computeDeliveryFeeCents(zone, totalCents);
     lineItems.push({
-      name: `Delivery: ${zone.neighborhood}, ${zone.borough}`,
+      name: `Delivery: ${zone.neighborhood}, ${zone.borough} — ${formatWeekendDate(fulfillment.date)}`,
       quantity: 1,
       unitPriceCents: feeCents,
     });
@@ -151,6 +166,7 @@ export async function POST(request: Request) {
       borough: zone.borough,
       address: fulfillment.address,
       feeCents,
+      date: fulfillment.date,
     };
   }
 

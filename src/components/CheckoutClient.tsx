@@ -7,6 +7,7 @@ import type { EventEntry } from "@/lib/events";
 import { computeDeliveryFeeCents, type DeliveryZone } from "@/lib/delivery-pricing";
 import { formatPrice } from "@/lib/square";
 import { whatsAppUrl, PICKUP_ADDRESS } from "@/lib/business-info";
+import { getBookableWeekendDates, formatWeekendDate } from "@/lib/weekend-dates";
 
 type TopChoice = "pickup" | "delivery";
 type PickupChoice = "event" | "kitchen";
@@ -69,6 +70,60 @@ function PillGroup<T extends string>({
   );
 }
 
+// Kitchen pickup and delivery are weekends only (event pickup isn't — it
+// follows whatever pop-ups are on the calendar), so those two choices pick
+// a specific Saturday or Sunday. Laid out as selectable day cards rather
+// than a calendar since there are only ever a handful of valid options.
+function WeekendDatePicker({
+  dates,
+  value,
+  onChange,
+  label,
+}: {
+  dates: string[];
+  value: string | null;
+  onChange: (iso: string) => void;
+  label: string;
+}) {
+  return (
+    <div>
+      <label className="text-sm font-medium text-maroon/70">{label}</label>
+      <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {dates.map((iso) => (
+          <button
+            key={iso}
+            type="button"
+            onClick={() => onChange(iso)}
+            aria-pressed={value === iso}
+            className={`rounded-2xl border px-3 py-3 text-left transition-colors ${
+              value === iso
+                ? "border-terracotta bg-terracotta/10"
+                : "border-maroon/20 hover:bg-maroon/5"
+            }`}
+          >
+            <span className="block text-sm font-semibold text-maroon">
+              {formatWeekendDate(iso).split(",")[0]}
+            </span>
+            <span className="block text-sm text-maroon/70">
+              {formatWeekendDate(iso).split(",")[1]?.trim()}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function WeekendNotice() {
+  return (
+    <p className="rounded-2xl border border-terracotta/30 bg-terracotta/10 px-4 py-3 text-sm font-medium text-maroon">
+      Delivery and kitchen pickup are available on weekends only (Saturday
+      and Sunday). Pick a day below and we&rsquo;ll confirm your time on
+      WhatsApp. Pickup at a pop-up event is available at every event.
+    </p>
+  );
+}
+
 export default function CheckoutClient({
   events,
   deliveryZones,
@@ -87,6 +142,8 @@ export default function CheckoutClient({
   const [selectedEventIndex, setSelectedEventIndex] = useState<number | null>(
     null,
   );
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const weekendDates = useMemo(() => getBookableWeekendDates(), []);
   const [address, setAddress] = useState("");
   const [zipCode, setZipCode] = useState("");
 
@@ -119,12 +176,14 @@ export default function CheckoutClient({
     setTopChoice(choice);
     setPickupChoice(null);
     setSelectedEventIndex(null);
+    setSelectedDate(null);
     setAddress("");
     setZipCode("");
   }
   function handlePickupChoiceChange(choice: PickupChoice) {
     setPickupChoice(choice);
     setSelectedEventIndex(null);
+    setSelectedDate(null);
   }
 
   // Sauces (free, per-box, and any extras bought directly from the cart)
@@ -146,8 +205,8 @@ export default function CheckoutClient({
     : null;
 
   const selection = useMemo(() => {
-    if (topChoice === "pickup" && pickupChoice === "kitchen") {
-      return { kind: "kitchen" as const };
+    if (topChoice === "pickup" && pickupChoice === "kitchen" && selectedDate) {
+      return { kind: "kitchen" as const, date: selectedDate };
     }
     if (
       topChoice === "pickup" &&
@@ -157,11 +216,19 @@ export default function CheckoutClient({
       const event = events[selectedEventIndex];
       return event ? { kind: "event" as const, event } : null;
     }
-    if (topChoice === "delivery" && matchedZone && address) {
-      return { kind: "delivery" as const, zone: matchedZone };
+    if (topChoice === "delivery" && matchedZone && address && selectedDate) {
+      return { kind: "delivery" as const, zone: matchedZone, date: selectedDate };
     }
     return null;
-  }, [topChoice, pickupChoice, selectedEventIndex, matchedZone, address, events]);
+  }, [
+    topChoice,
+    pickupChoice,
+    selectedEventIndex,
+    selectedDate,
+    matchedZone,
+    address,
+    events,
+  ]);
 
   const deliveryFeeCents =
     selection?.kind === "delivery"
@@ -226,11 +293,12 @@ export default function CheckoutClient({
                   venue: selection.event.venue,
                 }
               : selection.kind === "kitchen"
-                ? { kind: "kitchen" }
+                ? { kind: "kitchen", date: selection.date }
                 : {
                     kind: "delivery",
                     zoneId: selection.zone.id,
                     address: `${address}, ${zipCode}`,
+                    date: selection.date,
                   },
         }),
       });
@@ -260,7 +328,13 @@ export default function CheckoutClient({
             options={[
               { value: "pickup", label: "Pickup" },
               ...(deliveryZones.length > 0
-                ? [{ value: "delivery" as TopChoice, label: "Delivery" }]
+                ? [
+                    {
+                      value: "delivery" as TopChoice,
+                      label: "Delivery",
+                      sublabel: "Sat & Sun only",
+                    },
+                  ]
                 : []),
             ]}
             value={topChoice}
@@ -278,9 +352,19 @@ export default function CheckoutClient({
             <PillGroup
               options={[
                 ...(events.length > 0
-                  ? [{ value: "event" as PickupChoice, label: "At an Event" }]
+                  ? [
+                      {
+                        value: "event" as PickupChoice,
+                        label: "At an Event",
+                        sublabel: "any pop-up date",
+                      },
+                    ]
                   : []),
-                { value: "kitchen", label: "At Our Kitchen" },
+                {
+                  value: "kitchen",
+                  label: "At Our Kitchen",
+                  sublabel: "Sat & Sun only",
+                },
               ]}
               value={pickupChoice}
               onChange={handlePickupChoiceChange}
@@ -312,8 +396,21 @@ export default function CheckoutClient({
         </div>
       )}
 
+      {topChoice === "pickup" && pickupChoice === "kitchen" && (
+        <div className="mt-4 flex flex-col gap-4">
+          <WeekendNotice />
+          <WeekendDatePicker
+            dates={weekendDates}
+            value={selectedDate}
+            onChange={setSelectedDate}
+            label="Choose a pickup day"
+          />
+        </div>
+      )}
+
       {topChoice === "delivery" && (
         <div className="mt-4 flex flex-col gap-4">
+          <WeekendNotice />
           <div>
             <label className="text-sm font-medium text-maroon/70">
               ZIP code
@@ -381,6 +478,14 @@ export default function CheckoutClient({
               />
             </div>
           )}
+          {matchedZone && (
+            <WeekendDatePicker
+              dates={weekendDates}
+              value={selectedDate}
+              onChange={setSelectedDate}
+              label="Choose a delivery day"
+            />
+          )}
         </div>
       )}
 
@@ -404,7 +509,7 @@ export default function CheckoutClient({
         {taxRate != null && (
           <div className="mt-1 flex items-center justify-between text-sm text-maroon/70">
             <span>
-              {taxName ?? "Tax"} ({(taxRate * 100).toFixed(3).replace(/\.?0+$/, "")}%)
+              {taxName ?? "Tax"} ({(Math.round(taxRate * 10000) / 100).toFixed(2)}%)
             </span>
             <span>{formatPrice(taxCents)}</span>
           </div>
