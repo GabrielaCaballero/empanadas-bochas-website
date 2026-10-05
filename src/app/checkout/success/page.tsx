@@ -17,7 +17,7 @@ import {
 import { buildOrderReceiptPdf } from "@/lib/order-pdf";
 import { PICKUP_ADDRESS } from "@/lib/business-info";
 import CheckoutSuccessClient from "@/components/CheckoutSuccessClient";
-import { formatWeekendDate } from "@/lib/weekend-dates";
+import { formatWeekendDate, formatDayWithHours } from "@/lib/weekend-dates";
 
 const MATCH_WINDOW_MS = 30 * 60 * 1000;
 
@@ -79,7 +79,7 @@ export default async function CheckoutSuccessPage({
       label: "Pickup",
       title: "Our Kitchen",
       lines: [
-        ...(fulfillment.date ? [formatWeekendDate(fulfillment.date, true)] : []),
+        ...(fulfillment.date ? [formatDayWithHours(fulfillment.date, fulfillment.hours)] : []),
         PICKUP_ADDRESS,
       ],
     });
@@ -89,7 +89,7 @@ export default async function CheckoutSuccessPage({
       label: "Delivery",
       title: fulfillment.address,
       lines: [
-        ...(fulfillment.date ? [formatWeekendDate(fulfillment.date, true)] : []),
+        ...(fulfillment.date ? [formatDayWithHours(fulfillment.date, fulfillment.hours)] : []),
         `${fulfillment.neighborhood}, ${fulfillment.borough}`,
         `Delivery fee: ${fulfillment.feeCents === 0 ? "Free" : formatPrice(fulfillment.feeCents)}`,
       ],

@@ -6,7 +6,7 @@ import { useCart } from "@/lib/cart-context";
 import { formatPrice } from "@/lib/square";
 import { whatsAppUrl, PICKUP_ADDRESS } from "@/lib/business-info";
 import type { CheckoutContext } from "@/lib/checkout-context";
-import { formatWeekendDate } from "@/lib/weekend-dates";
+import { formatDayWithHours } from "@/lib/weekend-dates";
 
 function formatEventDate(iso: string) {
   return new Date(`${iso}T00:00:00`).toLocaleDateString("en-US", {
@@ -44,7 +44,7 @@ export default function CheckoutSuccessClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const scheduleMessage = `Hi! I just paid for pickup at your kitchen${fulfillment.kind === "kitchen" && fulfillment.date ? ` on ${formatWeekendDate(fulfillment.date, true)}` : ""}:\n${lineItems
+  const scheduleMessage = `Hi! I just paid for pickup at your kitchen${fulfillment.kind === "kitchen" && fulfillment.date ? ` on ${formatDayWithHours(fulfillment.date, fulfillment.hours)}` : ""}:\n${lineItems
     .filter((item) => !item.name.startsWith("Pickup:"))
     .map((item) => `${item.quantity}x ${item.name}`)
     .join("\n")}\nTotal: ${formatPrice(totalCents)}\n\nWhen can I pick it up?`;
@@ -80,7 +80,7 @@ export default function CheckoutSuccessClient({
             <p className="mt-1 font-semibold text-maroon">Our Kitchen</p>
             {fulfillment.date && (
               <p className="mt-1 text-sm text-maroon/70">
-                {formatWeekendDate(fulfillment.date, true)}
+                {formatDayWithHours(fulfillment.date, fulfillment.hours)}
               </p>
             )}
             <p className="mt-1 text-sm text-maroon/70">{PICKUP_ADDRESS}</p>
@@ -93,7 +93,7 @@ export default function CheckoutSuccessClient({
             </p>
             {fulfillment.date && (
               <p className="mt-1 text-sm text-maroon/70">
-                {formatWeekendDate(fulfillment.date, true)}
+                {formatDayWithHours(fulfillment.date, fulfillment.hours)}
               </p>
             )}
             <p className="mt-1 text-sm text-maroon/70">

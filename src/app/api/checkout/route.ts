@@ -11,7 +11,8 @@ import { encodeCheckoutContext, type CheckoutContext } from "@/lib/checkout-cont
 import { PICKUP_ADDRESS } from "@/lib/business-info";
 import type { CartLineItem } from "@/lib/cart-context";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
-import { isBookableWeekendDate, formatWeekendDate } from "@/lib/weekend-dates";
+import { formatWeekendDate } from "@/lib/weekend-dates";
+import { getWeekendOptions } from "@/lib/availability";
 
 type Fulfillment =
   | { kind: "event"; eventDate: string; venue: string }
@@ -114,10 +115,16 @@ export async function POST(request: Request) {
       eventAddress: event.address,
     };
   } else if (fulfillment.kind === "kitchen") {
-    // Re-validated server-side — never trust a client-sent date.
-    if (!isBookableWeekendDate(fulfillment.date)) {
+    // Re-validated server-side — never trust a client-sent date. Same
+    // rules the day picker uses (weekend, not closed in the sheet, no
+    // pop-up that day), via the one shared getWeekendOptions().
+    const day = (await getWeekendOptions()).find((o) => o.date === fulfillment.date);
+    if (!day?.kitchen.available) {
       return NextResponse.json(
-        { error: "Kitchen pickup is available on weekends only — please choose a Saturday or Sunday." },
+        {
+          error:
+            "Kitchen pickup isn't available on that day — please choose another weekend day, or pick up at a pop-up event.",
+        },
         { status: 400 },
       );
     }
@@ -127,7 +134,11 @@ export async function POST(request: Request) {
       unitPriceCents: 0,
     });
 
-    ctxFulfillment = { kind: "kitchen", date: fulfillment.date };
+    ctxFulfillment = {
+      kind: "kitchen",
+      date: fulfillment.date,
+      hours: day.kitchen.hours,
+    };
   } else {
     if (!fulfillment.address) {
       return NextResponse.json(
@@ -146,9 +157,13 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!isBookableWeekendDate(fulfillment.date)) {
+    const day = (await getWeekendOptions()).find((o) => o.date === fulfillment.date);
+    if (!day?.delivery.available) {
       return NextResponse.json(
-        { error: "Delivery is available on weekends only — please choose a Saturday or Sunday." },
+        {
+          error:
+            "Delivery isn't available on that day — please choose another Saturday or Sunday.",
+        },
         { status: 400 },
       );
     }
@@ -167,6 +182,7 @@ export async function POST(request: Request) {
       address: fulfillment.address,
       feeCents,
       date: fulfillment.date,
+      hours: day.delivery.hours,
     };
   }
 

@@ -43,8 +43,11 @@ export function getBookableWeekendDates(): string[] {
   return dates;
 }
 
-export function isBookableWeekendDate(iso: string): boolean {
-  return getBookableWeekendDates().includes(iso);
+// "Saturday, October 10 · 11am – 3pm" — the day, plus the window if the
+// availability sheet gave one for it.
+export function formatDayWithHours(iso: string, hours?: string): string {
+  const day = formatWeekendDate(iso, true);
+  return hours ? `${day} · ${hours}` : day;
 }
 
 export function formatWeekendDate(iso: string, long = false): string {

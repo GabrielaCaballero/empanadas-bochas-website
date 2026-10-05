@@ -25,7 +25,7 @@ export type CheckoutContext = {
     // date: the weekend day (YYYY-MM-DD) chosen for kitchen pickup/delivery —
     // those are weekend-only (see weekend-dates.ts). Optional only so a ctx
     // encoded before this existed still decodes.
-    | { kind: "kitchen"; date?: string }
+    | { kind: "kitchen"; date?: string; hours?: string }
     | {
         kind: "delivery";
         neighborhood: string;
@@ -33,6 +33,7 @@ export type CheckoutContext = {
         address: string;
         feeCents: number;
         date?: string;
+        hours?: string;
       };
 };
 

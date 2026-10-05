@@ -7,7 +7,9 @@ import type { EventEntry } from "@/lib/events";
 import { computeDeliveryFeeCents, type DeliveryZone } from "@/lib/delivery-pricing";
 import { formatPrice } from "@/lib/square";
 import { whatsAppUrl, PICKUP_ADDRESS } from "@/lib/business-info";
-import { getBookableWeekendDates, formatWeekendDate } from "@/lib/weekend-dates";
+import { formatWeekendDate } from "@/lib/weekend-dates";
+import type { DayOption } from "@/lib/availability";
+import FreeDeliveryProgress from "@/components/FreeDeliveryProgress";
 
 type TopChoice = "pickup" | "delivery";
 type PickupChoice = "event" | "kitchen";
@@ -70,56 +72,84 @@ function PillGroup<T extends string>({
   );
 }
 
-// Kitchen pickup and delivery are weekends only (event pickup isn't — it
-// follows whatever pop-ups are on the calendar), so those two choices pick
-// a specific Saturday or Sunday. Laid out as selectable day cards rather
-// than a calendar since there are only ever a handful of valid options.
+// Kitchen pickup and delivery are weekend-only (event pickup isn't — it
+// follows whatever pop-ups are on the calendar). Every upcoming weekend day
+// is shown so customers can see WHY a day is closed (a pop-up that day, or
+// the business marked it unavailable), but only open days can be chosen.
+// Laid out as selectable day cards, not a calendar, since there are only a
+// handful of days.
 function WeekendDatePicker({
-  dates,
+  options,
+  mode,
   value,
   onChange,
   label,
 }: {
-  dates: string[];
+  options: DayOption[];
+  mode: "delivery" | "kitchen";
   value: string | null;
   onChange: (iso: string) => void;
   label: string;
 }) {
+  const anyOpen = options.some((o) => o[mode].available);
   return (
     <div>
       <label className="text-sm font-medium text-maroon/70">{label}</label>
       <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {dates.map((iso) => (
-          <button
-            key={iso}
-            type="button"
-            onClick={() => onChange(iso)}
-            aria-pressed={value === iso}
-            className={`rounded-2xl border px-3 py-3 text-left transition-colors ${
-              value === iso
-                ? "border-terracotta bg-terracotta/10"
-                : "border-maroon/20 hover:bg-maroon/5"
-            }`}
-          >
-            <span className="block text-sm font-semibold text-maroon">
-              {formatWeekendDate(iso).split(",")[0]}
-            </span>
-            <span className="block text-sm text-maroon/70">
-              {formatWeekendDate(iso).split(",")[1]?.trim()}
-            </span>
-          </button>
-        ))}
+        {options.map((o) => {
+          const channel = o[mode];
+          const [weekdayLabel, dayLabel] = formatWeekendDate(o.date).split(",");
+          return (
+            <button
+              key={o.date}
+              type="button"
+              disabled={!channel.available}
+              onClick={() => onChange(o.date)}
+              aria-pressed={value === o.date}
+              className={`rounded-2xl border px-3 py-3 text-left transition-colors ${
+                !channel.available
+                  ? "cursor-not-allowed border-maroon/10 bg-maroon/5 opacity-60"
+                  : value === o.date
+                    ? "border-terracotta bg-terracotta/10"
+                    : "border-maroon/20 hover:bg-maroon/5"
+              }`}
+            >
+              <span className="block text-sm font-semibold text-maroon">
+                {weekdayLabel}
+              </span>
+              <span className="block text-sm text-maroon/70">
+                {dayLabel?.trim()}
+              </span>
+              {channel.available && channel.hours && (
+                <span className="mt-1 block text-xs text-maroon/60">
+                  {channel.hours}
+                </span>
+              )}
+              {!channel.available && channel.reason && (
+                <span className="mt-1 block text-xs leading-snug text-maroon/60">
+                  {channel.reason}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
+      {!anyOpen && (
+        <p className="mt-2 text-sm text-red-600">
+          No weekend days are open right now. Message us on WhatsApp and
+          we&rsquo;ll sort something out.
+        </p>
+      )}
     </div>
   );
 }
 
-function WeekendNotice() {
+function WeekendNotice({ mode }: { mode: "delivery" | "kitchen" }) {
   return (
     <p className="rounded-2xl border border-terracotta/30 bg-terracotta/10 px-4 py-3 text-sm font-medium text-maroon">
-      Delivery and kitchen pickup are available on weekends only (Saturday
-      and Sunday). Pick a day below and we&rsquo;ll confirm your time on
-      WhatsApp. Pickup at a pop-up event is available at every event.
+      {mode === "delivery"
+        ? "Delivery is available on Saturdays and Sundays. Pick a day below and we’ll confirm your time on WhatsApp."
+        : "Kitchen pickup is available on weekends when we don’t have a pop-up. On pop-up days, pick up at the event instead. Pick a day below and we’ll confirm your time on WhatsApp."}
     </p>
   );
 }
@@ -129,9 +159,11 @@ export default function CheckoutClient({
   deliveryZones,
   taxRate,
   taxName,
+  weekendOptions,
 }: {
   events: EventEntry[];
   deliveryZones: DeliveryZone[];
+  weekendOptions: DayOption[];
   taxRate: number | null;
   taxName: string | null;
 }) {
@@ -143,7 +175,6 @@ export default function CheckoutClient({
     null,
   );
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const weekendDates = useMemo(() => getBookableWeekendDates(), []);
   const [address, setAddress] = useState("");
   const [zipCode, setZipCode] = useState("");
 
@@ -398,9 +429,10 @@ export default function CheckoutClient({
 
       {topChoice === "pickup" && pickupChoice === "kitchen" && (
         <div className="mt-4 flex flex-col gap-4">
-          <WeekendNotice />
+          <WeekendNotice mode="kitchen" />
           <WeekendDatePicker
-            dates={weekendDates}
+            options={weekendOptions}
+            mode="kitchen"
             value={selectedDate}
             onChange={setSelectedDate}
             label="Choose a pickup day"
@@ -410,7 +442,8 @@ export default function CheckoutClient({
 
       {topChoice === "delivery" && (
         <div className="mt-4 flex flex-col gap-4">
-          <WeekendNotice />
+          <WeekendNotice mode="delivery" />
+          <FreeDeliveryProgress subtotalCents={grandTotalCents} />
           <div>
             <label className="text-sm font-medium text-maroon/70">
               ZIP code
@@ -480,7 +513,8 @@ export default function CheckoutClient({
           )}
           {matchedZone && (
             <WeekendDatePicker
-              dates={weekendDates}
+              options={weekendOptions}
+              mode="delivery"
               value={selectedDate}
               onChange={setSelectedDate}
               label="Choose a delivery day"

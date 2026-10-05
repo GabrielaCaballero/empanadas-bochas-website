@@ -7,6 +7,7 @@ import { useCart } from "@/lib/cart-context";
 import type { CatalogItem } from "@/lib/square";
 import { flavorInfo } from "@/lib/flavor-info";
 import { VegBadge } from "@/components/AllergenLegend";
+import FreeDeliveryProgress from "@/components/FreeDeliveryProgress";
 
 // Box of 12 runs a "buy 12, get 2 free" promo — customers pick 14 flavors
 // total and receive 14 empanadas, still charged the $60 Box-of-12 price.
@@ -16,7 +17,7 @@ import { VegBadge } from "@/components/AllergenLegend";
 const BOX_OF_12_PROMO_COUNT = 14;
 
 export default function AddToCart({ item }: { item: CatalogItem }) {
-  const { addItem } = useCart();
+  const { addItem, totalCents: cartTotalCents } = useCart();
   const rawRequired = item.requiredFlavorCount ?? 0;
   const isBoxOf12 = rawRequired === 12;
   const required = isBoxOf12 ? BOX_OF_12_PROMO_COUNT : rawRequired;
@@ -219,6 +220,12 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
       >
         Add to Cart
       </button>
+
+      {justAdded && (
+        <div className="mt-4">
+          <FreeDeliveryProgress subtotalCents={cartTotalCents} />
+        </div>
+      )}
 
       {justAdded && (
         <div className="mt-4 flex items-center justify-between gap-4 rounded-2xl bg-cream px-5 py-4">
