@@ -10,7 +10,6 @@ import {
 } from "@/lib/cart-context";
 import { formatPrice } from "@/lib/square";
 import { whatsAppUrl } from "@/lib/business-info";
-import FreeDeliveryProgress from "@/components/FreeDeliveryProgress";
 
 type SauceVariation = {
   id: string;
@@ -284,8 +283,6 @@ export default function CartClient({
 
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="flex flex-col gap-6">
-          <FreeDeliveryProgress subtotalCents={totalCents} />
-
           <ul className="flex flex-col gap-3">
             {items.map((item) => (
               <li

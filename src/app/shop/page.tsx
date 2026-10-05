@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { getCatalogItems, getActiveSalesTax, formatPrice } from "@/lib/square";
-import { FREE_DELIVERY_THRESHOLD_CENTS } from "@/lib/delivery-pricing";
 
 export const revalidate = 300;
 
@@ -22,9 +21,6 @@ export default async function ShopPage() {
       <h1 className="font-display text-4xl font-semibold text-maroon">Shop</h1>
       <p className="mt-3 max-w-xl text-maroon/70">
         Order online for pickup or delivery.
-      </p>
-      <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-terracotta/10 px-4 py-2 text-sm font-semibold text-maroon">
-        🚚 Free delivery on orders of {formatPrice(FREE_DELIVERY_THRESHOLD_CENTS)?.replace(".00", "")} or more
       </p>
 
       <div className="mt-10 grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">

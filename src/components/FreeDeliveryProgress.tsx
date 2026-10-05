@@ -1,6 +1,7 @@
 "use client";
 
 import { FREE_DELIVERY_THRESHOLD_CENTS } from "@/lib/delivery-pricing";
+import Link from "next/link";
 import { formatPrice } from "@/lib/square";
 
 // Nudges people toward the free-delivery threshold: a progress bar while
@@ -60,9 +61,17 @@ export default function FreeDeliveryProgress({
         />
       </div>
       {!unlocked && (
-        <p className="mt-1.5 text-xs text-maroon/60">
-          Free delivery on orders of {threshold} or more.
-        </p>
+        <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+          <p className="text-xs text-maroon/60">
+            Free delivery on orders of {threshold} or more.
+          </p>
+          <Link
+            href="/shop"
+            className="text-sm font-semibold text-terracotta hover:text-rust"
+          >
+            Shop more →
+          </Link>
+        </div>
       )}
     </div>
   );
