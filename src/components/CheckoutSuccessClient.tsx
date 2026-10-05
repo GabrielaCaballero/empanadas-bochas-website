@@ -6,6 +6,7 @@ import { useCart } from "@/lib/cart-context";
 import { formatPrice } from "@/lib/square";
 import { whatsAppUrl, PICKUP_ADDRESS } from "@/lib/business-info";
 import type { CheckoutContext } from "@/lib/checkout-context";
+import { formatDayWithHours } from "@/lib/weekend-dates";
 
 function formatEventDate(iso: string) {
   return new Date(`${iso}T00:00:00`).toLocaleDateString("en-US", {
@@ -21,6 +22,7 @@ export default function CheckoutSuccessClient({
   fulfillment,
   lineItems,
   totalCents,
+  totalTaxCents,
 }: {
   customerName: string;
   customerEmail: string;
@@ -32,6 +34,7 @@ export default function CheckoutSuccessClient({
     totalCents: number;
   }[];
   totalCents: number;
+  totalTaxCents: number;
 }) {
   const { clearCart } = useCart();
 
@@ -41,7 +44,7 @@ export default function CheckoutSuccessClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const scheduleMessage = `Hi! I just paid for pickup at your kitchen:\n${lineItems
+  const scheduleMessage = `Hi! I just paid for pickup at your kitchen${fulfillment.kind === "kitchen" && fulfillment.date ? ` on ${formatDayWithHours(fulfillment.date, fulfillment.hours)}` : ""}:\n${lineItems
     .filter((item) => !item.name.startsWith("Pickup:"))
     .map((item) => `${item.quantity}x ${item.name}`)
     .join("\n")}\nTotal: ${formatPrice(totalCents)}\n\nWhen can I pick it up?`;
@@ -75,6 +78,11 @@ export default function CheckoutSuccessClient({
           <>
             <p className="text-sm font-medium text-maroon/60">Pickup</p>
             <p className="mt-1 font-semibold text-maroon">Our Kitchen</p>
+            {fulfillment.date && (
+              <p className="mt-1 text-sm text-maroon/70">
+                {formatDayWithHours(fulfillment.date, fulfillment.hours)}
+              </p>
+            )}
             <p className="mt-1 text-sm text-maroon/70">{PICKUP_ADDRESS}</p>
           </>
         ) : (
@@ -83,6 +91,11 @@ export default function CheckoutSuccessClient({
             <p className="mt-1 font-semibold text-maroon">
               {fulfillment.address}
             </p>
+            {fulfillment.date && (
+              <p className="mt-1 text-sm text-maroon/70">
+                {formatDayWithHours(fulfillment.date, fulfillment.hours)}
+              </p>
+            )}
             <p className="mt-1 text-sm text-maroon/70">
               {fulfillment.neighborhood}, {fulfillment.borough}
             </p>
@@ -130,7 +143,13 @@ export default function CheckoutSuccessClient({
             </li>
           ))}
         </ul>
-        <div className="mt-4 flex items-center justify-between border-t border-maroon/10 pt-3 font-semibold text-maroon">
+        {totalTaxCents > 0 && (
+          <div className="mt-3 flex items-center justify-between border-t border-maroon/10 pt-3 text-sm text-maroon/70">
+            <span>Tax</span>
+            <span>{formatPrice(totalTaxCents)}</span>
+          </div>
+        )}
+        <div className={`flex items-center justify-between pt-3 font-semibold text-maroon ${totalTaxCents > 0 ? "" : "mt-4 border-t border-maroon/10"}`}>
           <span>Total</span>
           <span>{formatPrice(totalCents)}</span>
         </div>

@@ -17,6 +17,7 @@ import {
 import { buildOrderReceiptPdf } from "@/lib/order-pdf";
 import { PICKUP_ADDRESS } from "@/lib/business-info";
 import CheckoutSuccessClient from "@/components/CheckoutSuccessClient";
+import { formatWeekendDate, formatDayWithHours } from "@/lib/weekend-dates";
 
 const MATCH_WINDOW_MS = 30 * 60 * 1000;
 
@@ -77,19 +78,23 @@ export default async function CheckoutSuccessPage({
     pickupCardHtml = buildInfoCardHtml({
       label: "Pickup",
       title: "Our Kitchen",
-      lines: [PICKUP_ADDRESS],
+      lines: [
+        ...(fulfillment.date ? [formatDayWithHours(fulfillment.date, fulfillment.hours)] : []),
+        PICKUP_ADDRESS,
+      ],
     });
-    emailSubject = `New kitchen pickup order — ${ctx.name}`;
+    emailSubject = `New kitchen pickup order${fulfillment.date ? ` — ${formatWeekendDate(fulfillment.date)}` : ""} — ${ctx.name}`;
   } else {
     pickupCardHtml = buildInfoCardHtml({
       label: "Delivery",
       title: fulfillment.address,
       lines: [
+        ...(fulfillment.date ? [formatDayWithHours(fulfillment.date, fulfillment.hours)] : []),
         `${fulfillment.neighborhood}, ${fulfillment.borough}`,
         `Delivery fee: ${fulfillment.feeCents === 0 ? "Free" : formatPrice(fulfillment.feeCents)}`,
       ],
     });
-    emailSubject = `New delivery order — ${fulfillment.neighborhood}, ${fulfillment.borough}`;
+    emailSubject = `New delivery order${fulfillment.date ? ` — ${formatWeekendDate(fulfillment.date)}` : ""} — ${fulfillment.neighborhood}, ${fulfillment.borough}`;
   }
   const orderItemsTableHtml = buildOrderItemsTableHtml(order);
 
@@ -148,6 +153,7 @@ export default async function CheckoutSuccessPage({
       fulfillment={fulfillment}
       lineItems={order.lineItems}
       totalCents={order.totalCents}
+      totalTaxCents={order.totalTaxCents}
     />
   );
 }

@@ -11,11 +11,13 @@ import { encodeCheckoutContext, type CheckoutContext } from "@/lib/checkout-cont
 import { PICKUP_ADDRESS } from "@/lib/business-info";
 import type { CartLineItem } from "@/lib/cart-context";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { formatWeekendDate } from "@/lib/weekend-dates";
+import { getWeekendOptions } from "@/lib/availability";
 
 type Fulfillment =
   | { kind: "event"; eventDate: string; venue: string }
-  | { kind: "kitchen" }
-  | { kind: "delivery"; zoneId: string; address: string };
+  | { kind: "kitchen"; date: string }
+  | { kind: "delivery"; zoneId: string; address: string; date: string };
 
 type RequestBody = {
   items: CartLineItem[];
@@ -113,13 +115,30 @@ export async function POST(request: Request) {
       eventAddress: event.address,
     };
   } else if (fulfillment.kind === "kitchen") {
+    // Re-validated server-side — never trust a client-sent date. Same
+    // rules the day picker uses (weekend, not closed in the sheet, no
+    // pop-up that day), via the one shared getWeekendOptions().
+    const day = (await getWeekendOptions()).find((o) => o.date === fulfillment.date);
+    if (!day?.kitchen.available) {
+      return NextResponse.json(
+        {
+          error:
+            "Kitchen pickup isn't available on that day — please choose another weekend day, or pick up at a pop-up event.",
+        },
+        { status: 400 },
+      );
+    }
     lineItems.push({
-      name: `Pickup: Our Kitchen, ${PICKUP_ADDRESS}`,
+      name: `Pickup: Our Kitchen, ${PICKUP_ADDRESS} — ${formatWeekendDate(fulfillment.date)}`,
       quantity: 1,
       unitPriceCents: 0,
     });
 
-    ctxFulfillment = { kind: "kitchen" };
+    ctxFulfillment = {
+      kind: "kitchen",
+      date: fulfillment.date,
+      hours: day.kitchen.hours,
+    };
   } else {
     if (!fulfillment.address) {
       return NextResponse.json(
@@ -138,9 +157,20 @@ export async function POST(request: Request) {
       );
     }
 
+    const day = (await getWeekendOptions()).find((o) => o.date === fulfillment.date);
+    if (!day?.delivery.available) {
+      return NextResponse.json(
+        {
+          error:
+            "Delivery isn't available on that day — please choose another Saturday or Sunday.",
+        },
+        { status: 400 },
+      );
+    }
+
     const feeCents = computeDeliveryFeeCents(zone, totalCents);
     lineItems.push({
-      name: `Delivery: ${zone.neighborhood}, ${zone.borough}`,
+      name: `Delivery: ${zone.neighborhood}, ${zone.borough} — ${formatWeekendDate(fulfillment.date)}`,
       quantity: 1,
       unitPriceCents: feeCents,
     });
@@ -151,6 +181,8 @@ export async function POST(request: Request) {
       borough: zone.borough,
       address: fulfillment.address,
       feeCents,
+      date: fulfillment.date,
+      hours: day.delivery.hours,
     };
   }
 

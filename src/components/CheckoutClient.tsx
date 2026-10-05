@@ -7,6 +7,9 @@ import type { EventEntry } from "@/lib/events";
 import { computeDeliveryFeeCents, type DeliveryZone } from "@/lib/delivery-pricing";
 import { formatPrice } from "@/lib/square";
 import { whatsAppUrl, PICKUP_ADDRESS } from "@/lib/business-info";
+import { formatWeekendDate } from "@/lib/weekend-dates";
+import type { DayOption } from "@/lib/availability";
+import FreeDeliveryProgress from "@/components/FreeDeliveryProgress";
 
 type TopChoice = "pickup" | "delivery";
 type PickupChoice = "event" | "kitchen";
@@ -69,14 +72,98 @@ function PillGroup<T extends string>({
   );
 }
 
+// Kitchen pickup and delivery are weekend-only (event pickup isn't — it
+// follows whatever pop-ups are on the calendar). Every upcoming weekend day
+// is shown so customers can see WHY a day is closed (a pop-up that day, or
+// the business marked it unavailable), but only open days can be chosen.
+// Laid out as selectable day cards, not a calendar, since there are only a
+// handful of days.
+function WeekendDatePicker({
+  options,
+  mode,
+  value,
+  onChange,
+  label,
+}: {
+  options: DayOption[];
+  mode: "delivery" | "kitchen";
+  value: string | null;
+  onChange: (iso: string) => void;
+  label: string;
+}) {
+  const anyOpen = options.some((o) => o[mode].available);
+  return (
+    <div>
+      <label className="text-sm font-medium text-maroon/70">{label}</label>
+      <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {options.map((o) => {
+          const channel = o[mode];
+          const [weekdayLabel, dayLabel] = formatWeekendDate(o.date).split(",");
+          return (
+            <button
+              key={o.date}
+              type="button"
+              disabled={!channel.available}
+              onClick={() => onChange(o.date)}
+              aria-pressed={value === o.date}
+              className={`rounded-2xl border px-3 py-3 text-left transition-colors ${
+                !channel.available
+                  ? "cursor-not-allowed border-maroon/10 bg-maroon/5 opacity-60"
+                  : value === o.date
+                    ? "border-terracotta bg-terracotta/10"
+                    : "border-maroon/20 hover:bg-maroon/5"
+              }`}
+            >
+              <span className="block text-sm font-semibold text-maroon">
+                {weekdayLabel}
+              </span>
+              <span className="block text-sm text-maroon/70">
+                {dayLabel?.trim()}
+              </span>
+              {channel.available && channel.hours && (
+                <span className="mt-1 block text-xs text-maroon/60">
+                  {channel.hours}
+                </span>
+              )}
+              {!channel.available && channel.reason && (
+                <span className="mt-1 block text-xs leading-snug text-maroon/60">
+                  {channel.reason}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      {!anyOpen && (
+        <p className="mt-2 text-sm text-red-600">
+          No weekend days are open right now. Message us on WhatsApp and
+          we&rsquo;ll sort something out.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function WeekendNotice({ mode }: { mode: "delivery" | "kitchen" }) {
+  return (
+    <p className="rounded-2xl border border-terracotta/30 bg-terracotta/10 px-4 py-3 text-sm font-medium text-maroon">
+      {mode === "delivery"
+        ? "Delivery is available on Saturdays and Sundays. Pick a day below and we’ll confirm your time on WhatsApp."
+        : "Kitchen pickup is available on weekends when we don’t have a pop-up. On pop-up days, pick up at the event instead. Pick a day below and we’ll confirm your time on WhatsApp."}
+    </p>
+  );
+}
+
 export default function CheckoutClient({
   events,
   deliveryZones,
   taxRate,
   taxName,
+  weekendOptions,
 }: {
   events: EventEntry[];
   deliveryZones: DeliveryZone[];
+  weekendOptions: DayOption[];
   taxRate: number | null;
   taxName: string | null;
 }) {
@@ -87,6 +174,7 @@ export default function CheckoutClient({
   const [selectedEventIndex, setSelectedEventIndex] = useState<number | null>(
     null,
   );
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [address, setAddress] = useState("");
   const [zipCode, setZipCode] = useState("");
 
@@ -119,12 +207,14 @@ export default function CheckoutClient({
     setTopChoice(choice);
     setPickupChoice(null);
     setSelectedEventIndex(null);
+    setSelectedDate(null);
     setAddress("");
     setZipCode("");
   }
   function handlePickupChoiceChange(choice: PickupChoice) {
     setPickupChoice(choice);
     setSelectedEventIndex(null);
+    setSelectedDate(null);
   }
 
   // Sauces (free, per-box, and any extras bought directly from the cart)
@@ -146,8 +236,8 @@ export default function CheckoutClient({
     : null;
 
   const selection = useMemo(() => {
-    if (topChoice === "pickup" && pickupChoice === "kitchen") {
-      return { kind: "kitchen" as const };
+    if (topChoice === "pickup" && pickupChoice === "kitchen" && selectedDate) {
+      return { kind: "kitchen" as const, date: selectedDate };
     }
     if (
       topChoice === "pickup" &&
@@ -157,11 +247,19 @@ export default function CheckoutClient({
       const event = events[selectedEventIndex];
       return event ? { kind: "event" as const, event } : null;
     }
-    if (topChoice === "delivery" && matchedZone && address) {
-      return { kind: "delivery" as const, zone: matchedZone };
+    if (topChoice === "delivery" && matchedZone && address && selectedDate) {
+      return { kind: "delivery" as const, zone: matchedZone, date: selectedDate };
     }
     return null;
-  }, [topChoice, pickupChoice, selectedEventIndex, matchedZone, address, events]);
+  }, [
+    topChoice,
+    pickupChoice,
+    selectedEventIndex,
+    selectedDate,
+    matchedZone,
+    address,
+    events,
+  ]);
 
   const deliveryFeeCents =
     selection?.kind === "delivery"
@@ -226,11 +324,12 @@ export default function CheckoutClient({
                   venue: selection.event.venue,
                 }
               : selection.kind === "kitchen"
-                ? { kind: "kitchen" }
+                ? { kind: "kitchen", date: selection.date }
                 : {
                     kind: "delivery",
                     zoneId: selection.zone.id,
                     address: `${address}, ${zipCode}`,
+                    date: selection.date,
                   },
         }),
       });
@@ -260,7 +359,13 @@ export default function CheckoutClient({
             options={[
               { value: "pickup", label: "Pickup" },
               ...(deliveryZones.length > 0
-                ? [{ value: "delivery" as TopChoice, label: "Delivery" }]
+                ? [
+                    {
+                      value: "delivery" as TopChoice,
+                      label: "Delivery",
+                      sublabel: "Sat & Sun only",
+                    },
+                  ]
                 : []),
             ]}
             value={topChoice}
@@ -278,9 +383,19 @@ export default function CheckoutClient({
             <PillGroup
               options={[
                 ...(events.length > 0
-                  ? [{ value: "event" as PickupChoice, label: "At an Event" }]
+                  ? [
+                      {
+                        value: "event" as PickupChoice,
+                        label: "At an Event",
+                        sublabel: "any pop-up date",
+                      },
+                    ]
                   : []),
-                { value: "kitchen", label: "At Our Kitchen" },
+                {
+                  value: "kitchen",
+                  label: "At Our Kitchen",
+                  sublabel: "Sat & Sun only",
+                },
               ]}
               value={pickupChoice}
               onChange={handlePickupChoiceChange}
@@ -312,8 +427,23 @@ export default function CheckoutClient({
         </div>
       )}
 
+      {topChoice === "pickup" && pickupChoice === "kitchen" && (
+        <div className="mt-4 flex flex-col gap-4">
+          <WeekendNotice mode="kitchen" />
+          <WeekendDatePicker
+            options={weekendOptions}
+            mode="kitchen"
+            value={selectedDate}
+            onChange={setSelectedDate}
+            label="Choose a pickup day"
+          />
+        </div>
+      )}
+
       {topChoice === "delivery" && (
         <div className="mt-4 flex flex-col gap-4">
+          <WeekendNotice mode="delivery" />
+          <FreeDeliveryProgress subtotalCents={grandTotalCents} />
           <div>
             <label className="text-sm font-medium text-maroon/70">
               ZIP code
@@ -381,6 +511,15 @@ export default function CheckoutClient({
               />
             </div>
           )}
+          {matchedZone && (
+            <WeekendDatePicker
+              options={weekendOptions}
+              mode="delivery"
+              value={selectedDate}
+              onChange={setSelectedDate}
+              label="Choose a delivery day"
+            />
+          )}
         </div>
       )}
 
@@ -404,7 +543,7 @@ export default function CheckoutClient({
         {taxRate != null && (
           <div className="mt-1 flex items-center justify-between text-sm text-maroon/70">
             <span>
-              {taxName ?? "Tax"} ({(taxRate * 100).toFixed(3).replace(/\.?0+$/, "")}%)
+              {taxName ?? "Tax"} ({(Math.round(taxRate * 10000) / 100).toFixed(2)}%)
             </span>
             <span>{formatPrice(taxCents)}</span>
           </div>
