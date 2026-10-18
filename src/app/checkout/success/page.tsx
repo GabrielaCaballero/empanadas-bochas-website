@@ -15,7 +15,7 @@ import {
   buildOrderItemsTableHtml,
 } from "@/lib/email-template";
 import { buildOrderReceiptPdf } from "@/lib/order-pdf";
-import { PICKUP_ADDRESS } from "@/lib/business-info";
+import { PICKUP_AREA_FULL, PICKUP_ADDRESS_NOTE } from "@/lib/business-info";
 import CheckoutSuccessClient from "@/components/CheckoutSuccessClient";
 import { formatWeekendDate, formatDayWithHours } from "@/lib/weekend-dates";
 
@@ -80,7 +80,8 @@ export default async function CheckoutSuccessPage({
       title: "Our Kitchen",
       lines: [
         ...(fulfillment.date ? [formatDayWithHours(fulfillment.date, fulfillment.hours)] : []),
-        PICKUP_ADDRESS,
+        PICKUP_AREA_FULL,
+        PICKUP_ADDRESS_NOTE,
       ],
     });
     emailSubject = `New kitchen pickup order${fulfillment.date ? ` — ${formatWeekendDate(fulfillment.date)}` : ""} — ${ctx.name}`;

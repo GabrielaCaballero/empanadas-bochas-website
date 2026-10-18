@@ -6,7 +6,11 @@ import { useCart } from "@/lib/cart-context";
 import type { EventEntry } from "@/lib/events";
 import { computeDeliveryFeeCents, type DeliveryZone } from "@/lib/delivery-pricing";
 import { formatPrice } from "@/lib/square";
-import { whatsAppUrl, PICKUP_ADDRESS } from "@/lib/business-info";
+import {
+  whatsAppUrl,
+  PICKUP_AREA_FULL,
+  PICKUP_ADDRESS_NOTE,
+} from "@/lib/business-info";
 import { formatWeekendDate } from "@/lib/weekend-dates";
 import type { DayOption } from "@/lib/availability";
 import FreeDeliveryProgress from "@/components/FreeDeliveryProgress";
@@ -552,8 +556,9 @@ export default function CheckoutClient({
 
       {selection?.kind === "kitchen" && (
         <p className="mt-8 text-maroon/70">
-          Pick up at our kitchen: <strong>{PICKUP_ADDRESS}</strong>. Pay now,
-          then message us on WhatsApp to schedule a pickup time.
+          Pick up at our kitchen in <strong>{PICKUP_AREA_FULL}</strong>.{" "}
+          {PICKUP_ADDRESS_NOTE} Pay now, then message us on WhatsApp to
+          schedule a pickup time.
         </p>
       )}
 

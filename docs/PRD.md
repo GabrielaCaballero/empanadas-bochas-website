@@ -60,7 +60,7 @@ Each event/stop shows: venue name, address (with map), date/time, the venue's In
 Checkout is one combined picker (Di Blu Bakery-style — every concrete option shows its price/timing inline, e.g. "Astoria — $5", "Fifth Hammer Brewing, Aug 13 — Free") rather than the customer choosing a fulfillment mode first and filling in details after. Under the hood it still branches into three paths:
 
 1. **Pickup — at an event.** Customer picks one of the scheduled stops from the Events data and pays immediately. Implemented by calling Square's Checkout API server-side (not a manually pre-made static link) so the resulting Square Order is itemized with real line items and a note (e.g. "Pickup: [venue], [date]"). This is what makes the order traceable — a static link has no item/pickup context.
-2. **Pickup — at her kitchen** (45-21 45th Street, Long Island City, NY 11104). No online payment; a WhatsApp "click to chat" link (`wa.me/19178303570?text=...`, prefilled with an order summary) lets the customer message the business directly to arrange pickup and payment.
+2. **Pickup — at her kitchen** (published only as "Sunnyside, Queens, near the 46 St station (7 train)"; the exact address is sent privately on WhatsApp after an order). No online payment; a WhatsApp "click to chat" link (`wa.me/19178303570?text=...`, prefilled with an order summary) lets the customer message the business directly to arrange pickup and payment.
 3. **Delivery.** Customer picks their neighborhood from the combined picker, sees the delivery fee live (from the delivery-pricing sheet, with free delivery site-wide once the cart subtotal reaches $120), and pays immediately — items + delivery fee in one Square charge, same as event pickup. No more manual after-the-fact quoting.
 
 **Order tracking:** Square Dashboard → Orders is the system of record (same place the owner already checks for sales) for paid orders. In addition, every order/request (all three paths) triggers an automatic email via Resend:
@@ -81,7 +81,7 @@ Checkout is one combined picker (Di Blu Bakery-style — every concrete option s
 
 - Email: `empanadasbochas@gmail.com`
 - Phone / WhatsApp: `+1 (917) 830-3570`
-- Fixed pickup address: 45-21 45th Street, Long Island City, NY 11104, USA
+- Pickup area (public): Sunnyside, Queens, near the 46 St station (7 train). The street address is intentionally not published; it's sent privately after an order.
 
 ## Open items
 
