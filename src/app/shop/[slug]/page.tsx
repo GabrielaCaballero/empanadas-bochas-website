@@ -6,6 +6,7 @@ import { getCatalogItems, getActiveSalesTax, formatPrice } from "@/lib/square";
 import AddToCart from "@/components/AddToCart";
 import Accordion from "@/components/Accordion";
 import AllergenLegend from "@/components/AllergenLegend";
+import { sectionOf } from "@/lib/catalog-sections";
 
 export const revalidate = 300;
 
@@ -47,7 +48,13 @@ export default async function ProductPage({
 
   const price = formatPrice(item.variations[0]?.priceCents ?? null);
   const salesTax = await getActiveSalesTax();
-  const related = items.filter((i) => i.id !== item.id).slice(0, 3);
+  // Cross-sell: lead with the other side of the menu (alfajores on an
+  // empanada page, empanadas on an alfajor page), then top up with more from
+  // the same side if the other side has fewer than 3 items.
+  const others = items.filter((i) => i.id !== item.id);
+  const crossSell = others.filter((i) => sectionOf(i) !== sectionOf(item));
+  const sameSide = others.filter((i) => sectionOf(i) === sectionOf(item));
+  const related = [...crossSell, ...sameSide].slice(0, 3);
 
   // Lets Google (and LLMs that crawl/retrieve product pages) see this as a
   // real, priced product rather than just a page of text — the same facts

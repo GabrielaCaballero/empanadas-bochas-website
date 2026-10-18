@@ -1,7 +1,7 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { formatPrice, type OrderSummary } from "./square";
 import type { CheckoutContext } from "./checkout-context";
-import { PICKUP_ADDRESS } from "./business-info";
+import { PICKUP_AREA_FULL, PICKUP_ADDRESS_NOTE } from "./business-info";
 import { formatDayWithHours } from "./weekend-dates";
 
 const PAGE_WIDTH = 396; // 5.5in at 72dpi — a compact receipt, not a full page
@@ -62,7 +62,8 @@ export async function buildOrderReceiptPdf({
     if (fulfillment.date) {
       draw(formatDayWithHours(fulfillment.date, fulfillment.hours), { size: 11, color: GRAY, gap: 14 });
     }
-    draw(PICKUP_ADDRESS, { size: 11, color: GRAY, gap: 22 });
+    draw(PICKUP_AREA_FULL, { size: 11, color: GRAY, gap: 14 });
+    draw(PICKUP_ADDRESS_NOTE, { size: 10, color: GRAY, gap: 22 });
   } else {
     draw("Delivery", { size: 10, useBold: true, color: GRAY, gap: 14 });
     draw(fulfillment.address, { size: 12, useBold: true, gap: 16 });

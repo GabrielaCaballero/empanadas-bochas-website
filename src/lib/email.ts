@@ -11,6 +11,7 @@ export async function sendEmail({
   html,
   idempotencyKey,
   attachments,
+  replyTo,
 }: {
   to: string;
   subject: string;
@@ -19,6 +20,10 @@ export async function sendEmail({
   // an order-confirmation page) without Resend actually emailing twice.
   idempotencyKey?: string;
   attachments?: { filename: string; content: Uint8Array }[];
+  // For emails to the business about a customer (e.g. a catering inquiry):
+  // hitting Reply goes straight to the customer, not to our own sending
+  // address.
+  replyTo?: string;
 }) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
@@ -37,6 +42,7 @@ export async function sendEmail({
       to,
       subject,
       html,
+      ...(replyTo ? { reply_to: replyTo } : {}),
       attachments: attachments?.map((a) => ({
         filename: a.filename,
         content: Buffer.from(a.content).toString("base64"),

@@ -8,7 +8,7 @@ import { buildSquareLineItems } from "@/lib/order-summary";
 import { getUpcomingEvents } from "@/lib/events";
 import { getDeliveryZones, computeDeliveryFeeCents } from "@/lib/delivery-pricing";
 import { encodeCheckoutContext, type CheckoutContext } from "@/lib/checkout-context";
-import { PICKUP_ADDRESS } from "@/lib/business-info";
+import { PICKUP_AREA } from "@/lib/business-info";
 import type { CartLineItem } from "@/lib/cart-context";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { formatWeekendDate } from "@/lib/weekend-dates";
@@ -129,7 +129,7 @@ export async function POST(request: Request) {
       );
     }
     lineItems.push({
-      name: `Pickup: Our Kitchen, ${PICKUP_ADDRESS} — ${formatWeekendDate(fulfillment.date)}`,
+      name: `Pickup: Our Kitchen (${PICKUP_AREA}) — ${formatWeekendDate(fulfillment.date)}`,
       quantity: 1,
       unitPriceCents: 0,
     });

@@ -4,7 +4,11 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { formatPrice } from "@/lib/square";
-import { whatsAppUrl, PICKUP_ADDRESS } from "@/lib/business-info";
+import {
+  whatsAppUrl,
+  PICKUP_AREA_FULL,
+  PICKUP_ADDRESS_NOTE,
+} from "@/lib/business-info";
 import type { CheckoutContext } from "@/lib/checkout-context";
 import { formatDayWithHours } from "@/lib/weekend-dates";
 
@@ -83,7 +87,8 @@ export default function CheckoutSuccessClient({
                 {formatDayWithHours(fulfillment.date, fulfillment.hours)}
               </p>
             )}
-            <p className="mt-1 text-sm text-maroon/70">{PICKUP_ADDRESS}</p>
+            <p className="mt-1 text-sm text-maroon/70">{PICKUP_AREA_FULL}</p>
+            <p className="mt-1 text-sm text-maroon/70">{PICKUP_ADDRESS_NOTE}</p>
           </>
         ) : (
           <>

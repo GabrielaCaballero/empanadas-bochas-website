@@ -4,7 +4,9 @@ import NycSkyline from "@/components/NycSkyline";
 import {
   BUSINESS_INSTAGRAM,
   BUSINESS_EMAIL_PUBLIC,
-  PICKUP_ADDRESS,
+  PICKUP_AREA_FULL,
+  PICKUP_ADDRESS_NOTE,
+  PICKUP_MAP_QUERY,
   whatsAppUrl,
 } from "@/lib/business-info";
 
@@ -73,7 +75,7 @@ const details = [
 export const metadata: Metadata = {
   title: "Contact",
   description:
-    "Get in touch with Empanadas Bochas — message us on WhatsApp or Instagram, or stop by for pickup in Long Island City, NYC.",
+    "Get in touch with Empanadas Bochas — message us on WhatsApp or Instagram, or pick up in Sunnyside, Queens.",
   alternates: { canonical: "/contact" },
 };
 
@@ -153,21 +155,22 @@ export default function ContactPage() {
           </span>
           <div>
             <p className="text-sm font-medium text-maroon/60">
-              Pickup kitchen
+              Pickup area
             </p>
             <a
-              href={`https://maps.google.com/?q=${encodeURIComponent(PICKUP_ADDRESS)}`}
+              href={`https://maps.google.com/?q=${encodeURIComponent(PICKUP_MAP_QUERY)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="font-semibold text-terracotta underline decoration-terracotta/40 underline-offset-2 hover:text-rust hover:decoration-rust/50"
             >
-              {PICKUP_ADDRESS}
+              {PICKUP_AREA_FULL}
             </a>
+            <p className="mt-1 text-sm text-maroon/60">{PICKUP_ADDRESS_NOTE}</p>
           </div>
         </div>
         <iframe
-          title="Map to Empanadas Bochas pickup kitchen"
-          src={`https://www.google.com/maps?q=${encodeURIComponent(PICKUP_ADDRESS)}&output=embed`}
+          title="Map of the Empanadas Bochas pickup area"
+          src={`https://www.google.com/maps?q=${encodeURIComponent(PICKUP_MAP_QUERY)}&output=embed`}
           className="mt-6 h-72 w-full border-0"
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"
