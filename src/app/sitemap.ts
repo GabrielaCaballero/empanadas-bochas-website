@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { getCatalogItems } from "@/lib/square";
+import { getShopProducts } from "@/lib/shop-products";
 
 const SITE_URL = "https://empanadasbochas.com";
 
@@ -17,7 +17,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // listed this run, so a failure here shouldn't take down the whole file.
   let productRoutes: MetadataRoute.Sitemap = [];
   try {
-    const items = await getCatalogItems();
+    const items = await getShopProducts();
     productRoutes = items.map((item) => ({
       url: `${SITE_URL}/shop/${item.id}`,
       changeFrequency: "weekly" as const,

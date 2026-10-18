@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { getCatalogItems, getActiveSalesTax, formatPrice } from "@/lib/square";
+import { getShopProducts } from "@/lib/shop-products";
 import AddToCart from "@/components/AddToCart";
 import Accordion from "@/components/Accordion";
 import AllergenLegend from "@/components/AllergenLegend";
@@ -16,7 +17,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const items = await getCatalogItems();
+  const items = await getShopProducts();
   const item = items.find((i) => i.id === slug);
   if (!item) return {};
 
@@ -41,10 +42,16 @@ export default async function ProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const items = await getCatalogItems();
+  const items = await getShopProducts();
   const item = items.find((i) => i.id === slug);
 
-  if (!item) notFound();
+  if (!item) {
+    // Alfajor flavors are split into their own pages (see shop-products.ts),
+    // so the old single-alfajor URL no longer exists; send it to the shelf.
+    const original = await getCatalogItems();
+    if (original.some((i) => i.id === slug)) redirect("/shop?type=sweet");
+    notFound();
+  }
 
   const price = formatPrice(item.variations[0]?.priceCents ?? null);
   const salesTax = await getActiveSalesTax();

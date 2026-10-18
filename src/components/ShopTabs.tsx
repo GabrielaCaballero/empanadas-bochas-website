@@ -33,7 +33,7 @@ const TABS: {
     id: "sweet",
     label: "Sweet",
     emoji: "🍪",
-    image: "/photos/shop-sweet.webp",
+    image: "/photos/shop-alfajores.webp",
     imageAlt: "Two Empanadas Bochas alfajores on a wooden plate",
     imagePosition: "50% 50%",
     heading: "Alfajores, a sweet Argentine classic",
@@ -88,23 +88,30 @@ export default function ShopTabs({
 
       {/* key remounts the block on tab change so the new photo and copy
           fade in instead of snapping. */}
-      <div key={active.id} className="mt-8 animate-[fadein_0.4s_ease-out]">
-        <div className="relative aspect-[16/9] w-full overflow-hidden rounded-3xl bg-cream sm:aspect-[21/9]">
-          <Image
-            src={active.image}
-            alt={active.imageAlt}
-            fill
-            priority
-            className="object-cover"
-            style={{ objectPosition: active.imagePosition }}
-            sizes="(min-width: 1152px) 1104px, 100vw"
-          />
-        </div>
-        <div className="mx-auto mt-8 max-w-2xl text-center">
-          <h2 className="font-display text-2xl font-semibold text-maroon sm:text-3xl">
+      {/* key remounts the block on tab change so the new photo and copy
+          fade in instead of snapping. The copy sits ON the photo so the
+          products start as high up the page as possible. */}
+      <div
+        key={active.id}
+        className="relative mt-8 flex min-h-80 w-full animate-[fadein_0.4s_ease-out] flex-col justify-end overflow-hidden rounded-3xl bg-maroon sm:min-h-0 sm:aspect-[21/8] sm:justify-center"
+      >
+        <Image
+          src={active.image}
+          alt={active.imageAlt}
+          fill
+          priority
+          className="object-cover"
+          style={{ objectPosition: active.imagePosition }}
+          sizes="(min-width: 1152px) 1104px, 100vw"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-maroon/90 via-maroon/50 to-maroon/10 sm:bg-gradient-to-r sm:from-maroon/85 sm:via-maroon/50 sm:to-transparent" />
+        <div className="relative p-6 pt-24 sm:max-w-xl sm:p-10">
+          <h2 className="font-display text-2xl font-semibold text-cream sm:text-4xl">
             {active.heading}
           </h2>
-          <p className="mt-3 leading-relaxed text-maroon/70">{active.body}</p>
+          <p className="mt-2 text-sm leading-relaxed text-cream/90 sm:mt-3 sm:text-base">
+            {active.body}
+          </p>
         </div>
       </div>
 

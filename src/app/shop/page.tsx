@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { getCatalogItems, getActiveSalesTax } from "@/lib/square";
+import { getActiveSalesTax } from "@/lib/square";
+import { getShopProducts } from "@/lib/shop-products";
 import ShopTabs from "@/components/ShopTabs";
 
 export const revalidate = 300;
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
 
 export default async function ShopPage() {
   const [items, salesTax] = await Promise.all([
-    getCatalogItems(),
+    getShopProducts(),
     getActiveSalesTax(),
   ]);
 
