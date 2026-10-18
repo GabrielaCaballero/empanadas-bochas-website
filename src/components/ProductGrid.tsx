@@ -23,7 +23,7 @@ export default function ProductGrid({
           <Link
             key={item.id}
             href={`/shop/${item.id}`}
-            className={`group relative block aspect-4/5 overflow-hidden rounded-3xl bg-cream shadow-sm transition-shadow duration-300 hover:shadow-xl ${
+            className={`group relative block aspect-[16/11] overflow-hidden sm:aspect-[5/6] rounded-3xl bg-cream shadow-sm transition-shadow duration-300 hover:shadow-xl ${
               isBoxOf12 ? "ring-2 ring-inset ring-terracotta" : ""
             }`}
           >
@@ -31,7 +31,7 @@ export default function ProductGrid({
                 cover the whole thing on hover, so the caption below
                 becomes an overlay sitting on top of it (see the scrim +
                 caption below) instead of two separate zones. */}
-            <div className="absolute inset-x-0 top-0 h-[72%] overflow-hidden transition-[height] duration-500 ease-out group-hover:h-full">
+            <div className="absolute inset-x-0 top-0 h-[calc(100%-4.5rem)] overflow-hidden sm:h-[72%] transition-[height] duration-500 ease-out group-hover:h-full sm:group-hover:h-full">
               {item.imageUrl && (
                 <Image
                   src={item.imageUrl}
@@ -53,8 +53,8 @@ export default function ProductGrid({
                 card background. */}
             <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/25 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-            <div className="absolute inset-x-0 bottom-0 p-4">
-              <h2 className="font-display text-lg font-semibold text-maroon transition-colors duration-300 group-hover:text-background">
+            <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4">
+              <h2 className="font-display text-base font-semibold text-maroon transition-colors sm:text-lg duration-300 group-hover:text-background">
                 {item.name.trim()}
               </h2>
               <p className="mt-0.5 font-medium text-terracotta transition-colors duration-300 group-hover:text-cream">
