@@ -21,11 +21,6 @@ const OCCASIONS = [
     title: "Birthdays & private parties",
     body: "Birthdays, baby showers, family gatherings. Empanadas are made for sharing.",
   },
-  {
-    icon: "🔁",
-    title: "Something regular",
-    body: "Thinking of a weekly office lunch or a recurring order? Tell us what you have in mind.",
-  },
 ];
 
 const STEPS = [
@@ -62,7 +57,7 @@ export default function CateringPage() {
         <h2 className="font-display text-3xl font-semibold text-maroon">
           What we cater
         </h2>
-        <div className="mt-8 grid gap-6 sm:grid-cols-3">
+        <div className="mt-8 grid gap-6 sm:grid-cols-2">
           {OCCASIONS.map((o) => (
             <div key={o.title} className="rounded-3xl bg-cream p-6">
               <span className="text-3xl">{o.icon}</span>
