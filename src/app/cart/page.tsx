@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { getCatalogItems, getActiveSalesTax } from "@/lib/square";
+import { getActiveSalesTax } from "@/lib/square";
+import { getShopProducts } from "@/lib/shop-products";
 import CartClient from "@/components/CartClient";
 
 export const revalidate = 300;
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CartPage() {
-  const items = await getCatalogItems();
+  const items = await getShopProducts();
   const salesTax = await getActiveSalesTax();
   const sauceItem = items.find((i) => i.name.trim().toLowerCase() === "sauce");
   const sauceVariations = (sauceItem?.variations ?? [])

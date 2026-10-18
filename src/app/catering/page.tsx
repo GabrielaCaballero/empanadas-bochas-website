@@ -37,7 +37,7 @@ const STEPS = [
 export default function CateringPage() {
   return (
     <div className="flex flex-1 flex-col">
-      <section className="bg-cream px-6 py-16 sm:py-24">
+      <section className="bg-cream px-6 py-10 sm:py-16">
         <div className="mx-auto max-w-3xl text-center">
           <span className="rounded-full bg-terracotta/10 px-4 py-1 text-sm font-semibold text-terracotta">
             Catering &amp; private events
@@ -58,7 +58,7 @@ export default function CateringPage() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-6xl px-6 py-16">
+      <section className="mx-auto w-full max-w-6xl px-6 py-10">
         <h2 className="font-display text-3xl font-semibold text-maroon">
           What we cater
         </h2>
@@ -75,7 +75,7 @@ export default function CateringPage() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-6xl px-6 pb-16">
+      <section className="mx-auto w-full max-w-6xl px-6 pb-10">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-cream">
             <Image
@@ -98,7 +98,7 @@ export default function CateringPage() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-6xl px-6 pb-16">
+      <section className="mx-auto w-full max-w-6xl px-6 pb-10">
         <h2 className="font-display text-3xl font-semibold text-maroon">
           How it works
         </h2>
@@ -116,7 +116,7 @@ export default function CateringPage() {
 
       <section
         id="inquiry"
-        className="mx-auto w-full max-w-3xl scroll-mt-20 px-6 pb-24"
+        className="mx-auto w-full max-w-3xl scroll-mt-20 px-6 pb-16"
       >
         <h2 className="font-display text-3xl font-semibold text-maroon">
           Tell us about your event

@@ -43,8 +43,8 @@ export default function Testimonials() {
   }
 
   return (
-    <section className="px-6 pt-24 pb-8">
-      <div className="mx-auto max-w-3xl rounded-3xl bg-cream px-8 py-16 text-center">
+    <section className="px-6 pt-14 pb-6">
+      <div className="mx-auto max-w-3xl rounded-3xl bg-cream px-8 py-10 text-center">
         <p className="font-display text-2xl font-semibold text-maroon sm:text-3xl">
           &ldquo;{current.quote}&rdquo;
         </p>
