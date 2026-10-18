@@ -27,7 +27,7 @@ const TABS: {
     imageAlt: "A box of freshly baked Empanadas Bochas empanadas",
     imagePosition: "50% 78%",
     heading: "Empanadas, the Argentine way",
-    body: "An empanada is a golden, hand-folded pastry stuffed with a savory filling. It\u2019s the go-to snack at every Argentine table, party, and street corner. Ours are made by hand and baked fresh, from the recipes we grew up with.",
+    body: "Hand-folded, baked fresh, from the recipes we grew up with.",
   },
   {
     id: "sweet",
@@ -37,7 +37,7 @@ const TABS: {
     imageAlt: "Two Empanadas Bochas alfajores on a wooden plate",
     imagePosition: "50% 50%",
     heading: "Alfajores, a sweet Argentine classic",
-    body: "An alfajor is two soft cookies hugging a creamy dulce de leche filling. It\u2019s Argentina\u2019s favorite sweet treat, found in every kiosk and every family kitchen, and the perfect way to finish an empanada order.",
+    body: "Soft cookies hugging creamy dulce de leche.",
   },
 ];
 
@@ -93,7 +93,7 @@ export default function ShopTabs({
           products start as high up the page as possible. */}
       <div
         key={active.id}
-        className="relative mt-8 flex min-h-80 w-full animate-[fadein_0.4s_ease-out] flex-col justify-end overflow-hidden rounded-3xl bg-maroon sm:min-h-0 sm:aspect-[21/8] sm:justify-center"
+        className="relative mt-8 flex min-h-44 w-full animate-[fadein_0.4s_ease-out] flex-col justify-end overflow-hidden rounded-3xl bg-maroon sm:min-h-0 sm:aspect-[7/2] sm:justify-center"
       >
         <Image
           src={active.image}
@@ -105,11 +105,11 @@ export default function ShopTabs({
           sizes="(min-width: 1152px) 1104px, 100vw"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-maroon/90 via-maroon/50 to-maroon/10 sm:bg-gradient-to-r sm:from-maroon/85 sm:via-maroon/50 sm:to-transparent" />
-        <div className="relative p-6 pt-24 sm:max-w-xl sm:p-10">
-          <h2 className="font-display text-2xl font-semibold text-cream sm:text-4xl">
+        <div className="relative p-5 pt-16 sm:max-w-xl sm:p-10">
+          <h2 className="font-display text-xl font-semibold text-cream sm:text-3xl">
             {active.heading}
           </h2>
-          <p className="mt-2 text-sm leading-relaxed text-cream/90 sm:mt-3 sm:text-base">
+          <p className="mt-1 text-sm leading-relaxed text-cream/90 sm:mt-2 sm:text-base">
             {active.body}
           </p>
         </div>

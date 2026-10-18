@@ -6,7 +6,7 @@ import { sectionOf } from "./catalog-sections";
 // only holds one photo per item (the two-alfajor plate), so each flavor's own
 // photo lives in the repo until Square has one per variation.
 const FLAVORS: { match: RegExp; name: string; src: string }[] = [
-  { match: /maicena/i, name: "Cornstarch Alfajor", src: "/photos/alfajor-maicena.webp" },
+  { match: /maicena/i, name: "Shortbread Alfajor", src: "/photos/alfajor-maicena.webp" },
   { match: /chocol/i, name: "Chocolate Alfajor", src: "/photos/alfajor-chocolate.webp" },
 ];
 
