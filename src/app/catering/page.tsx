@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import CateringForm from "@/components/CateringForm";
 import { BUSINESS_EMAIL_PUBLIC } from "@/lib/business-info";
 
@@ -71,6 +72,29 @@ export default function CateringPage() {
               <p className="mt-2 text-maroon/70">{o.body}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="mx-auto w-full max-w-6xl px-6 pb-16">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-cream">
+            <Image
+              src="/photos/event-1.webp"
+              alt="Our table at a pop-up event, stacked with empanadas"
+              fill
+              className="object-cover"
+              sizes="(min-width: 640px) 50vw, 100vw"
+            />
+          </div>
+          <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-cream">
+            <Image
+              src="/photos/event-2.webp"
+              alt="Empanadas Bochas table with our logo runner"
+              fill
+              className="object-cover"
+              sizes="(min-width: 640px) 50vw, 100vw"
+            />
+          </div>
         </div>
       </section>
 

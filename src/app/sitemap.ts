@@ -6,8 +6,7 @@ const SITE_URL = "https://empanadasbochas.com";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: SITE_URL, changeFrequency: "weekly", priority: 1 },
-    { url: `${SITE_URL}/empanadas`, changeFrequency: "daily", priority: 0.9 },
-    { url: `${SITE_URL}/alfajores`, changeFrequency: "daily", priority: 0.8 },
+    { url: `${SITE_URL}/shop`, changeFrequency: "daily", priority: 0.9 },
     { url: `${SITE_URL}/catering`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${SITE_URL}/events`, changeFrequency: "daily", priority: 0.8 },
     { url: `${SITE_URL}/contact`, changeFrequency: "monthly", priority: 0.5 },

@@ -43,7 +43,7 @@ export default function Home() {
           </p>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
             <Link
-              href="/empanadas"
+              href="/shop"
               className="rounded-full bg-terracotta px-6 py-3 font-semibold text-background transition-colors hover:bg-rust"
             >
               Shop the Menu
@@ -128,6 +128,50 @@ export default function Home() {
       </section>
 
       <Testimonials />
+
+      <section className="bg-maroon px-6 py-20 text-cream sm:px-12 sm:py-24">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 sm:grid-cols-2">
+          <div>
+            <span className="rounded-full bg-cream/15 px-4 py-1 text-sm font-medium ring-1 ring-cream/40">
+              Catering &amp; private events
+            </span>
+            <h2 className="mt-5 font-display text-3xl font-semibold sm:text-5xl">
+              Empanadas for your next event
+            </h2>
+            <p className="mt-4 text-lg leading-relaxed text-cream/80">
+              Office lunches, birthdays, family gatherings. We bring handmade
+              Argentine empanadas to your table. Tell us about your event and
+              we&rsquo;ll reply by email with options and pricing.
+            </p>
+            <Link
+              href="/catering"
+              className="mt-8 inline-block rounded-full bg-terracotta px-6 py-3 font-semibold text-background transition-colors hover:bg-rust"
+            >
+              Plan your event
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="relative aspect-[4/5] -rotate-2 overflow-hidden rounded-2xl shadow-xl">
+              <Image
+                src="/photos/event-1.webp"
+                alt="Our table at a pop-up event, stacked with empanadas"
+                fill
+                className="object-cover"
+                sizes="(min-width: 640px) 25vw, 45vw"
+              />
+            </div>
+            <div className="relative mt-8 aspect-[4/5] rotate-2 overflow-hidden rounded-2xl shadow-xl">
+              <Image
+                src="/photos/event-2.webp"
+                alt="Empanadas Bochas table with our logo runner"
+                fill
+                className="object-cover"
+                sizes="(min-width: 640px) 25vw, 45vw"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section
         id="flavors"

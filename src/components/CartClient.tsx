@@ -261,7 +261,7 @@ export default function CartClient({
         )}
 
         <Link
-          href="/empanadas"
+          href="/shop"
           className="mt-6 inline-block rounded-full bg-terracotta px-6 py-3 font-semibold text-background transition-colors hover:bg-rust"
         >
           Shop the Menu
@@ -390,7 +390,7 @@ export default function CartClient({
           )}
 
           <Link
-            href="/empanadas"
+            href="/shop"
             className="text-sm font-semibold text-terracotta hover:text-rust"
           >
             ← Continue shopping

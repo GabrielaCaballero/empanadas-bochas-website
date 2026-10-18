@@ -230,7 +230,7 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
           </span>
           <div className="flex shrink-0 items-center gap-4">
             <Link
-              href="/empanadas"
+              href="/shop"
               className="text-sm font-medium text-maroon/60 hover:text-maroon"
             >
               Keep shopping
