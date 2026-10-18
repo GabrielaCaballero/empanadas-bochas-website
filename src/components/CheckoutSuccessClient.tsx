@@ -54,7 +54,7 @@ export default function CheckoutSuccessClient({
     .join("\n")}\nTotal: ${formatPrice(totalCents)}\n\nWhen can I pick it up?`;
 
   return (
-    <section className="mx-auto w-full max-w-2xl flex-1 px-6 py-16">
+    <section className="mx-auto w-full max-w-2xl flex-1 px-6 py-8 sm:py-10">
       <span className="text-4xl">🎉</span>
       <h1 className="mt-3 font-display text-4xl font-semibold text-maroon">
         Order confirmed!

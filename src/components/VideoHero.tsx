@@ -20,7 +20,7 @@ export default function VideoHero() {
 
   return (
     <section className="grid w-full grid-cols-1 sm:grid-cols-2 sm:h-[520px]">
-      <div className="flex flex-col items-start justify-center gap-6 bg-terracotta px-8 py-16 sm:py-24">
+      <div className="flex flex-col items-start justify-center gap-6 bg-terracotta px-8 py-10 sm:py-16">
         <span className="text-sm font-semibold tracking-wide text-cream/80 uppercase">
           Made to share
         </span>

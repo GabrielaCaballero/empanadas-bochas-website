@@ -77,8 +77,8 @@ export default function Home() {
 
       <VideoHero />
 
-      <section className="overflow-hidden bg-cream px-6 py-24 sm:px-12">
-        <div className="mx-auto flex max-w-6xl flex-col gap-20">
+      <section className="overflow-hidden bg-cream px-6 py-14 sm:px-12 sm:py-16">
+        <div className="mx-auto flex max-w-6xl flex-col gap-12">
           <div className="grid items-center gap-10 sm:grid-cols-2">
             <div className="relative mx-auto aspect-4/5 w-full max-w-sm -rotate-2 overflow-hidden rounded-3xl shadow-xl sm:mx-0">
               <Image
@@ -129,7 +129,7 @@ export default function Home() {
 
       <Testimonials />
 
-      <section className="bg-maroon px-6 py-20 text-cream sm:px-12 sm:py-24">
+      <section className="bg-maroon px-6 py-12 text-cream sm:px-12 sm:py-16">
         <div className="mx-auto grid max-w-6xl items-center gap-10 sm:grid-cols-2">
           <div>
             <span className="rounded-full bg-cream/15 px-4 py-1 text-sm font-medium ring-1 ring-cream/40">
@@ -175,7 +175,7 @@ export default function Home() {
 
       <section
         id="flavors"
-        className="mx-auto w-full max-w-6xl scroll-mt-20 px-6 pt-8 pb-24"
+        className="mx-auto w-full max-w-6xl scroll-mt-20 px-6 pt-8 pb-16"
       >
         <div className="text-center">
           <h2 className="font-display text-3xl font-semibold text-maroon sm:text-4xl">

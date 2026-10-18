@@ -84,7 +84,7 @@ export default async function ProductPage({
   };
 
   return (
-    <section className="mx-auto w-full max-w-6xl flex-1 px-6 py-16">
+    <section className="mx-auto w-full max-w-6xl flex-1 px-6 py-8 sm:py-10">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
@@ -160,7 +160,7 @@ export default async function ProductPage({
       </div>
 
       {related.length > 0 && (
-        <div className="mt-20">
+        <div className="mt-12">
           <h2 className="font-display text-2xl font-semibold text-maroon">
             You might also like
           </h2>

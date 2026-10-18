@@ -16,6 +16,9 @@ const TABS: {
   image: string;
   imageAlt: string;
   imagePosition: string;
+  // "cutout" = a transparent-background PNG-style image shown whole on the
+  // maroon banner; "photo" = a full-bleed photo with a dark scrim for the text.
+  imageKind: "photo" | "cutout";
   heading: string;
   body: string;
 }[] = [
@@ -23,9 +26,10 @@ const TABS: {
     id: "savory",
     label: "Savory",
     emoji: "🥟",
-    image: "/photos/empanada-2.webp",
-    imageAlt: "A box of freshly baked Empanadas Bochas empanadas",
-    imagePosition: "50% 78%",
+    image: "/photos/shop-empanadas.webp",
+    imageAlt: "Four empanadas cut open to show different fillings",
+    imagePosition: "50% 50%",
+    imageKind: "cutout",
     heading: "Empanadas, the Argentine way",
     body: "Hand-folded, baked fresh, from the recipes we grew up with.",
   },
@@ -36,6 +40,7 @@ const TABS: {
     image: "/photos/shop-alfajores.webp",
     imageAlt: "Two Empanadas Bochas alfajores on a wooden plate",
     imagePosition: "50% 50%",
+    imageKind: "photo",
     heading: "Alfajores, a sweet Argentine classic",
     body: "Soft cookies hugging creamy dulce de leche.",
   },
@@ -66,7 +71,7 @@ export default function ShopTabs({
       <div
         role="tablist"
         aria-label="Menu type"
-        className="mt-8 inline-flex rounded-full bg-cream p-1"
+        className="mt-5 inline-flex rounded-full bg-cream p-1"
       >
         {TABS.map((t) => (
           <button
@@ -87,25 +92,42 @@ export default function ShopTabs({
       </div>
 
       {/* key remounts the block on tab change so the new photo and copy
-          fade in instead of snapping. */}
-      {/* key remounts the block on tab change so the new photo and copy
-          fade in instead of snapping. The copy sits ON the photo so the
+          fade in instead of snapping. The copy sits ON the image so the
           products start as high up the page as possible. */}
       <div
         key={active.id}
-        className="relative mt-8 flex min-h-44 w-full animate-[fadein_0.4s_ease-out] flex-col justify-end overflow-hidden rounded-3xl bg-maroon sm:min-h-0 sm:aspect-[7/2] sm:justify-center"
+        className="relative mt-4 flex min-h-36 w-full animate-[fadein_0.4s_ease-out] flex-col justify-end overflow-hidden rounded-3xl bg-maroon sm:min-h-0 sm:aspect-[4/1] sm:justify-center"
       >
-        <Image
-          src={active.image}
-          alt={active.imageAlt}
-          fill
-          priority
-          className="object-cover"
-          style={{ objectPosition: active.imagePosition }}
-          sizes="(min-width: 1152px) 1104px, 100vw"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-maroon/90 via-maroon/50 to-maroon/10 sm:bg-gradient-to-r sm:from-maroon/85 sm:via-maroon/50 sm:to-transparent" />
-        <div className="relative p-5 pt-16 sm:max-w-xl sm:p-10">
+        {active.imageKind === "photo" ? (
+          <>
+            <Image
+              src={active.image}
+              alt={active.imageAlt}
+              fill
+              priority
+              className="object-cover"
+              style={{ objectPosition: active.imagePosition }}
+              sizes="(min-width: 1152px) 1104px, 100vw"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-maroon/90 via-maroon/50 to-maroon/10 sm:bg-gradient-to-r sm:from-maroon/85 sm:via-maroon/50 sm:to-transparent" />
+          </>
+        ) : (
+          <div className="relative mx-5 mt-4 h-20 sm:absolute sm:inset-y-5 sm:left-auto sm:right-8 sm:mx-0 sm:mt-0 sm:h-auto sm:w-[55%]">
+            <Image
+              src={active.image}
+              alt={active.imageAlt}
+              fill
+              priority
+              className="object-contain object-right"
+              sizes="(min-width: 1152px) 600px, 100vw"
+            />
+          </div>
+        )}
+        <div
+          className={`relative p-5 sm:max-w-md sm:p-10 ${
+            active.imageKind === "photo" ? "pt-12" : "pt-3"
+          }`}
+        >
           <h2 className="font-display text-xl font-semibold text-cream sm:text-3xl">
             {active.heading}
           </h2>
@@ -123,7 +145,7 @@ export default function ShopTabs({
         </p>
       )}
 
-      <div className="mt-16 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-maroon/10 pt-6 text-sm">
+      <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-maroon/10 pt-6 text-sm">
         <span className="font-medium text-maroon/60">Also from us:</span>
         <Link
           href="/catering"
