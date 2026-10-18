@@ -32,7 +32,7 @@ export default function VideoHero() {
           family&rsquo;s always made them.
         </p>
         <Link
-          href="/shop"
+          href="/empanadas"
           className="rounded-full bg-maroon px-6 py-3 font-semibold text-cream transition-colors hover:bg-maroon/80"
         >
           Shop the Menu

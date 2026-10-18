@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The old single "Shop" page was split into Empanadas / Alfajores. Product
+  // pages (/shop/[id]) are unchanged; only the bare /shop listing moved.
+  async redirects() {
+    return [{ source: "/shop", destination: "/empanadas", permanent: true }];
+  },
   images: {
     remotePatterns: [
       {

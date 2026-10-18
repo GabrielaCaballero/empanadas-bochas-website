@@ -66,7 +66,7 @@ export default function FreeDeliveryProgress({
             Free delivery on orders of {threshold} or more.
           </p>
           <Link
-            href="/shop"
+            href="/empanadas"
             className="text-sm font-semibold text-terracotta hover:text-rust"
           >
             Shop more →

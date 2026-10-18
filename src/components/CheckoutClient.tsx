@@ -287,7 +287,7 @@ export default function CheckoutClient({
         </h1>
         <p className="mt-3 text-maroon/70">Your cart is empty.</p>
         <Link
-          href="/shop"
+          href="/empanadas"
           className="mt-6 inline-block rounded-full bg-terracotta px-6 py-3 font-semibold text-background transition-colors hover:bg-rust"
         >
           Shop the Menu

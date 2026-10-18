@@ -43,7 +43,7 @@ export default function Home() {
           </p>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
             <Link
-              href="/shop"
+              href="/empanadas"
               className="rounded-full bg-terracotta px-6 py-3 font-semibold text-background transition-colors hover:bg-rust"
             >
               Shop the Menu

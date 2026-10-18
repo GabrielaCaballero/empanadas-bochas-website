@@ -162,7 +162,7 @@ export default function CheckoutSuccessClient({
 
       <div className="mt-8 flex flex-wrap gap-3">
         <Link
-          href="/shop"
+          href="/empanadas"
           className="rounded-full bg-terracotta px-6 py-3 font-semibold text-background transition-colors hover:bg-rust"
         >
           Continue Shopping
