@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { CatalogItem } from "@/lib/square";
@@ -8,18 +9,35 @@ import ProductGrid from "@/components/ProductGrid";
 
 type Tab = "savory" | "sweet";
 
-const TABS: { id: Tab; label: string; emoji: string; blurb: string }[] = [
+const TABS: {
+  id: Tab;
+  label: string;
+  emoji: string;
+  image: string;
+  imageAlt: string;
+  imagePosition: string;
+  heading: string;
+  body: string;
+}[] = [
   {
     id: "savory",
     label: "Savory",
     emoji: "🥟",
-    blurb: "Handmade empanadas, baked fresh. Boxes, singles, and sauces.",
+    image: "/photos/empanada-2.webp",
+    imageAlt: "A box of freshly baked Empanadas Bochas empanadas",
+    imagePosition: "50% 78%",
+    heading: "Empanadas, the Argentine way",
+    body: "An empanada is a golden, hand-folded pastry stuffed with a savory filling. It\u2019s the go-to snack at every Argentine table, party, and street corner. Ours are made by hand and baked fresh, from the recipes we grew up with.",
   },
   {
     id: "sweet",
     label: "Sweet",
     emoji: "🍪",
-    blurb: "Soft, filled Argentine alfajores (sandwich cookies).",
+    image: "/photos/shop-sweet.webp",
+    imageAlt: "Two Empanadas Bochas alfajores on a wooden plate",
+    imagePosition: "50% 50%",
+    heading: "Alfajores, a sweet Argentine classic",
+    body: "An alfajor is two soft cookies hugging a creamy dulce de leche filling. It\u2019s Argentina\u2019s favorite sweet treat, found in every kiosk and every family kitchen, and the perfect way to finish an empanada order.",
   },
 ];
 
@@ -68,7 +86,27 @@ export default function ShopTabs({
         ))}
       </div>
 
-      <p className="mt-4 max-w-xl text-maroon/70">{active.blurb}</p>
+      {/* key remounts the block on tab change so the new photo and copy
+          fade in instead of snapping. */}
+      <div key={active.id} className="mt-8 animate-[fadein_0.4s_ease-out]">
+        <div className="relative aspect-[16/9] w-full overflow-hidden rounded-3xl bg-cream sm:aspect-[21/9]">
+          <Image
+            src={active.image}
+            alt={active.imageAlt}
+            fill
+            priority
+            className="object-cover"
+            style={{ objectPosition: active.imagePosition }}
+            sizes="(min-width: 1152px) 1104px, 100vw"
+          />
+        </div>
+        <div className="mx-auto mt-8 max-w-2xl text-center">
+          <h2 className="font-display text-2xl font-semibold text-maroon sm:text-3xl">
+            {active.heading}
+          </h2>
+          <p className="mt-3 leading-relaxed text-maroon/70">{active.body}</p>
+        </div>
+      </div>
 
       {visible.length > 0 ? (
         <ProductGrid items={visible} hasTax={hasTax} />
