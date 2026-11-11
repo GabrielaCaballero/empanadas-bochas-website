@@ -31,8 +31,8 @@ export const BOX_OF_12_DISCOUNT_RATE = 0.1;
 export const BOX_OF_12_REGULAR_FLAVOR_COUNT = 14; // 12 + the 2 free
 export const BOX_OF_12_PROMO_FLAVOR_COUNT = 12;
 
-// 1 free alfajor for every 6 empanadas in the order (any mix of boxes/singles).
-export const EMPANADAS_PER_FREE_ALFAJOR = 6;
+// 1 free alfajor with each Box of 6 (only the Box of 6: not the Box of 12,
+// not boxes of 3, not singles).
 
 // Buy 2 alfajores, get the 3rd free (every group of 3 has one free).
 export const ALFAJORS_PER_FREE_GROUP = 3;
@@ -59,8 +59,8 @@ export type PromoResult = {
   // How much of the discount belongs to each cart line (by line id), for
   // showing "$5.00 -> Free" next to the line.
   lineDiscountCents: Record<string, number>;
-  // Free alfajors earned from empanadas that aren't in the cart yet (the
-  // cart offers a one-tap way to add them).
+  // Free alfajors earned (one per Box of 6) that aren't in the cart yet; the
+  // cart offers a one-tap way to add them.
   unclaimedFreeAlfajors: number;
   // True when adding ONE more alfajor would make it free (buy 2, get 1).
   oneMoreAlfajorIsFree: boolean;
@@ -82,6 +82,9 @@ export function isAlfajorName(name: string): boolean {
 }
 export function isBoxOf12Name(name: string): boolean {
   return /box of 12/i.test(name) && !isAlfajorName(name);
+}
+export function isBoxOf6Name(name: string): boolean {
+  return /box of 6/i.test(name) && !isAlfajorName(name);
 }
 
 function flavorTotal(flavors?: Record<string, number>): number {
@@ -145,10 +148,9 @@ export function applyPromotions(
 
   // 2 + 3. Free alfajors. One unit per alfajor in the cart, cheapest first,
   // so the free ones are always the least expensive.
-  const empanadas = lines
-    .filter((l) => !isAlfajorName(l.name))
-    .reduce((sum, l) => sum + flavorTotal(l.flavors) * l.quantity, 0);
-  const earnedFromEmpanadas = Math.floor(empanadas / EMPANADAS_PER_FREE_ALFAJOR);
+  const earnedFromEmpanadas = lines
+    .filter((l) => isBoxOf6Name(l.name))
+    .reduce((sum, l) => sum + l.quantity, 0);
 
   const alfajorUnits = lines
     .filter((l) => isAlfajorName(l.name))
@@ -181,7 +183,7 @@ export function applyPromotions(
 
   if (empanadaDealCents > 0) {
     discounts.push({
-      name: `${PROMO_NAME}: free alfajor with ${EMPANADAS_PER_FREE_ALFAJOR} empanadas`,
+      name: `${PROMO_NAME}: free alfajor with Box of 6`,
       amountCents: empanadaDealCents,
     });
   }

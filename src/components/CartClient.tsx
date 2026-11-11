@@ -16,7 +16,6 @@ import {
   isPromoActive,
   PROMO_NAME,
   PROMO_THROUGH_LABEL,
-  EMPANADAS_PER_FREE_ALFAJOR,
 } from "@/lib/promotions";
 
 type SauceVariation = {
@@ -342,7 +341,7 @@ export default function CartClient({
                 </p>
                 <p className="mt-1 text-sm text-maroon/70">
                   {promo.unclaimedFreeAlfajors > 0
-                    ? `${PROMO_NAME} special: a free alfajor for every ${EMPANADAS_PER_FREE_ALFAJOR} empanadas. Pick your flavor and it's added for free.`
+                    ? `${PROMO_NAME} special: a free alfajor with every Box of 6. Pick your flavor and it's added for free.`
                     : `${PROMO_NAME} special: buy 2 alfajores, get 1 free. Add one more and its price comes off automatically.`}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">

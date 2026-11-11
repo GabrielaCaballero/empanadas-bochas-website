@@ -17,8 +17,8 @@ const DEALS = [
   },
   {
     icon: "🎁",
-    title: "Free alfajor with 6 empanadas",
-    body: "For every 6 empanadas in your order (boxes or singles, any mix), an alfajor on us.",
+    title: "Free alfajor with a Box of 6",
+    body: "Every Box of 6 comes with a free alfajor. Pick your flavor in the cart.",
     href: "/shop?type=savory",
     cta: "Shop empanadas",
   },

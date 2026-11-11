@@ -4,7 +4,7 @@ import { formatPrice, type CatalogItem } from "@/lib/square";
 import {
   box12PromoPriceCents,
   isAlfajorName,
-  EMPANADAS_PER_FREE_ALFAJOR,
+  isBoxOf6Name,
 } from "@/lib/promotions";
 
 // The photo-card grid used by every product section (Empanadas, Alfajores).
@@ -36,10 +36,7 @@ export default function ProductGrid({
         // Small deal tags, only while a promotion runs.
         const dealTags: string[] = [];
         if (promoActive && isAlfajorName(item.name)) dealTags.push("Buy 2, get 1 free");
-        if (
-          promoActive &&
-          (item.requiredFlavorCount ?? 0) >= EMPANADAS_PER_FREE_ALFAJOR
-        ) {
+        if (promoActive && isBoxOf6Name(item.name)) {
           dealTags.push("🎁 Free alfajor");
         }
 

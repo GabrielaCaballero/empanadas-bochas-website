@@ -11,8 +11,8 @@ import { sectionOf } from "@/lib/catalog-sections";
 import {
   box12PromoPriceCents,
   isAlfajorName,
+  isBoxOf6Name,
   isPromoActive,
-  EMPANADAS_PER_FREE_ALFAJOR,
   PROMO_NAME,
   PROMO_THROUGH_LABEL,
 } from "@/lib/promotions";
@@ -152,11 +152,10 @@ export default async function ProductPage({
                   10% off the Box of 12. Choose 12 flavors below.
                 </p>
               )}
-              {(item.requiredFlavorCount ?? 0) >=
-                EMPANADAS_PER_FREE_ALFAJOR && (
+              {isBoxOf6Name(item.name) && (
                 <p className="mt-1">
-                  🎁 Free alfajor with every {EMPANADAS_PER_FREE_ALFAJOR}{" "}
-                  empanadas in your order. You can add it in your cart.
+                  🎁 Free alfajor with every Box of 6. You can add it in your
+                  cart.
                 </p>
               )}
               {isAlfajorName(item.name) && (

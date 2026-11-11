@@ -8,7 +8,7 @@ needs editing to start, change, or stop a promotion.
 | Deal | How it works |
 | --- | --- |
 | 10% off the Box of 12 | $60.00 becomes $54.00. The usual "buy 12, get 2 free" is paused while it runs: customers pick **12** flavors, not 14. |
-| Free alfajor with 6 empanadas | One free alfajor for every 6 empanadas in the order (boxes and singles count together; a Box of 12 earns 2). |
+| Free alfajor with a Box of 6 | One free alfajor per **Box of 6** (two boxes earn two). Only the Box of 6 counts: not the Box of 12, boxes of 3, or singles. |
 | Buy 2 alfajores, get 1 free | Every group of 3 alfajores has one free (the cheapest). Alfajores already free from the empanada deal don't count toward this one. |
 
 The three deals can combine. The free-delivery threshold ($120) is measured on

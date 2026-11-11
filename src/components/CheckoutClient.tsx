@@ -455,9 +455,8 @@ export default function CheckoutClient({
       {topChoice === "delivery" && (
         <div className="mt-4 flex flex-col gap-4">
           <WeekendNotice mode="delivery" />
-          <FreeDeliveryProgress subtotalCents={grandTotalCents} />
           <div>
-            <label className="text-sm font-medium text-maroon/70">
+            <label className="block text-sm font-medium text-maroon/70">
               ZIP code
             </label>
             <input
@@ -469,17 +468,38 @@ export default function CheckoutClient({
               required
               className="mt-1 w-full max-w-40 rounded-xl border border-maroon/20 bg-background px-4 py-3 text-maroon"
             />
+            {zipCode.length < 5 && (
+              <p className="mt-2 text-sm text-maroon/60">
+                Enter your ZIP code to see your delivery price. You&rsquo;ll
+                add your street address next.
+              </p>
+            )}
             {zipCode.length === 5 &&
               (matchedZone ? (
-                <p className="mt-2 text-sm text-maroon/70">
-                  {matchedZone.neighborhood}, {matchedZone.borough} — delivery
-                  is{" "}
-                  {matchedZoneFeeCents === 0 ? (
-                    <span className="font-bold text-green-600">Free</span>
-                  ) : (
-                    formatPrice(matchedZoneFeeCents)
+                // The ZIP alone is enough to price delivery, so the price (and
+                // how close the order is to free delivery) shows right away,
+                // before the street address is asked for.
+                <div className="mt-3 flex flex-col gap-3">
+                  <div className="flex items-center justify-between gap-3 rounded-2xl bg-cream px-4 py-3 text-maroon">
+                    <span className="text-sm">
+                      Delivery to{" "}
+                      <strong>
+                        {matchedZone.neighborhood}, {matchedZone.borough}
+                      </strong>
+                    </span>
+                    <span className="shrink-0 text-lg font-semibold">
+                      {matchedZoneFeeCents === 0 ? (
+                        <span className="font-bold text-green-600">Free</span>
+                      ) : (
+                        formatPrice(matchedZoneFeeCents)
+                      )}
+                    </span>
+                  </div>
+                  {/* Not shown for zones that are always free: nothing to add. */}
+                  {matchedZone.priceCents > 0 && (
+                    <FreeDeliveryProgress subtotalCents={grandTotalCents} />
                   )}
-                </p>
+                </div>
               ) : (
                 <div className="mt-2 flex flex-col gap-2">
                   <p className="text-sm text-red-600">
