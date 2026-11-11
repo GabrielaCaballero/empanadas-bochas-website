@@ -10,6 +10,13 @@ import {
 } from "@/lib/cart-context";
 import { formatPrice } from "@/lib/square";
 import { whatsAppUrl } from "@/lib/business-info";
+import {
+  applyPromotions,
+  boxOf12NeedsReselect,
+  isPromoActive,
+  PROMO_NAME,
+  PROMO_THROUGH_LABEL,
+} from "@/lib/promotions";
 
 type SauceVariation = {
   id: string;
@@ -20,6 +27,13 @@ type SauceVariation = {
 type Product = {
   name: string;
   imageUrl: string | null;
+};
+
+type AlfajorOption = {
+  id: string;
+  variationId: string;
+  name: string;
+  priceCents: number;
 };
 
 type SuggestedProduct = {
@@ -140,6 +154,7 @@ export default function CartClient({
   sauceVariations,
   productsById,
   suggestedProduct,
+  alfajorOptions,
   taxRate,
   taxName,
 }: {
@@ -147,6 +162,7 @@ export default function CartClient({
   sauceVariations: SauceVariation[];
   productsById: Record<string, Product>;
   suggestedProduct: SuggestedProduct | null;
+  alfajorOptions: AlfajorOption[];
   taxRate: number | null;
   taxName: string | null;
 }) {
@@ -169,8 +185,35 @@ export default function CartClient({
   // real, authoritative tax amount is computed by Square itself when the
   // order is created, this just avoids surprising the customer with a
   // different total once they reach Square's page.
-  const taxCents = taxRate ? Math.round(totalCents * taxRate) : 0;
-  const grandTotalCents = totalCents + taxCents;
+  //
+  // Promotions (lib/promotions.ts) come off first, and tax is charged on
+  // what's left: the same order Square applies them in.
+  const promo = applyPromotions(items);
+  const discountedCents = totalCents - promo.totalDiscountCents;
+  const taxCents = taxRate ? Math.round(discountedCents * taxRate) : 0;
+  const grandTotalCents = discountedCents + taxCents;
+  const promoOn = isPromoActive();
+  // A Box of 12 left in the cart from before/after a promotion changed.
+  const staleBoxIds = new Set(
+    items.filter((i) => boxOf12NeedsReselect(i)).map((i) => i.id),
+  );
+
+  function addAlfajor(option: AlfajorOption) {
+    const existing = items.find(
+      (i) => i.itemId === option.id && i.variationId === option.variationId,
+    );
+    if (existing) {
+      updateQuantity(existing.id, existing.quantity + 1);
+    } else {
+      addItem({
+        itemId: option.id,
+        variationId: option.variationId,
+        name: option.name,
+        unitPriceCents: option.priceCents,
+        quantity: 1,
+      });
+    }
+  }
 
   function addOrIncrementSauce(variation: SauceVariation) {
     if (!sauceItemId) return;
@@ -244,7 +287,7 @@ export default function CartClient({
                 {suggestedProduct.name}
                 {/box of 12/i.test(suggestedProduct.name) && (
                   <span className="rounded-full bg-terracotta px-2 py-0.5 text-xs font-bold tracking-wide text-background">
-                    🎉 2 FREE
+                    {promoOn ? "10% OFF" : "🎉 2 FREE"}
                   </span>
                 )}
               </h2>
@@ -283,6 +326,39 @@ export default function CartClient({
 
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="flex flex-col gap-6">
+          {promo.active &&
+            (promo.unclaimedFreeAlfajors > 0 || promo.oneMoreAlfajorIsFree) &&
+            alfajorOptions.length > 0 && (
+              <div className="rounded-3xl border-2 border-terracotta/40 bg-terracotta/10 p-5">
+                <p className="font-display text-lg font-semibold text-maroon">
+                  {promo.unclaimedFreeAlfajors > 0
+                    ? `🎁 You've earned ${
+                        promo.unclaimedFreeAlfajors === 1
+                          ? "a free alfajor"
+                          : `${promo.unclaimedFreeAlfajors} free alfajores`
+                      }!`
+                    : "🍪 One more alfajor and it's free!"}
+                </p>
+                <p className="mt-1 text-sm text-maroon/70">
+                  {promo.unclaimedFreeAlfajors > 0
+                    ? `${PROMO_NAME} special: a free alfajor with every Box of 6. Pick your flavor and it's added for free.`
+                    : `${PROMO_NAME} special: buy 2 alfajores, get 1 free. Add one more and its price comes off automatically.`}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {alfajorOptions.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => addAlfajor(option)}
+                      className="rounded-full bg-terracotta px-4 py-2 text-sm font-semibold text-background transition-colors hover:bg-rust"
+                    >
+                      + {option.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
           <ul className="flex flex-col gap-3">
             {items.map((item) => (
               <li
@@ -330,7 +406,25 @@ export default function CartClient({
 
                   <div className="flex shrink-0 flex-col items-end gap-2">
                     <p className="font-medium text-terracotta">
-                      {formatPrice(item.unitPriceCents * item.quantity)}
+                      {promo.lineDiscountCents[item.id] ? (
+                        <>
+                          <s className="mr-1.5 text-sm font-normal text-maroon/50">
+                            {formatPrice(item.unitPriceCents * item.quantity)}
+                          </s>
+                          {item.unitPriceCents * item.quantity -
+                            promo.lineDiscountCents[item.id] ===
+                          0 ? (
+                            <span className="font-bold text-green-600">Free</span>
+                          ) : (
+                            formatPrice(
+                              item.unitPriceCents * item.quantity -
+                                promo.lineDiscountCents[item.id],
+                            )
+                          )}
+                        </>
+                      ) : (
+                        formatPrice(item.unitPriceCents * item.quantity)
+                      )}
                     </p>
                     <button
                       type="button"
@@ -342,6 +436,13 @@ export default function CartClient({
                     </button>
                   </div>
                 </div>
+
+                {staleBoxIds.has(item.id) && (
+                  <p className="rounded-xl bg-amber-100 px-4 py-2 text-sm font-medium text-amber-900">
+                    Our Box of 12 offer changed while this was in your cart.
+                    Please remove it and add it again to choose your flavors.
+                  </p>
+                )}
 
                 {item.flavors && (
                   <ItemSauces
@@ -406,6 +507,15 @@ export default function CartClient({
               <span>Subtotal</span>
               <span>{formatPrice(totalCents)}</span>
             </div>
+            {promo.discounts.map((d) => (
+              <div
+                key={d.name}
+                className="flex items-start justify-between gap-3 font-medium text-green-700"
+              >
+                <span>{d.name}</span>
+                <span className="shrink-0">−{formatPrice(d.amountCents)}</span>
+              </div>
+            ))}
             {taxRate != null && (
               <div className="flex items-center justify-between">
                 <span>
@@ -419,12 +529,23 @@ export default function CartClient({
             <span>Total</span>
             <span>{formatPrice(grandTotalCents)}</span>
           </div>
-          <Link
-            href="/checkout"
-            className="mt-6 block w-full rounded-full bg-terracotta px-6 py-3 text-center font-semibold text-background transition-colors hover:bg-rust"
-          >
-            Checkout
-          </Link>
+          {promo.active && (
+            <p className="mt-3 text-xs text-maroon/60">
+              Limited time promotions, through {PROMO_THROUGH_LABEL}.
+            </p>
+          )}
+          {staleBoxIds.size > 0 ? (
+            <p className="mt-6 rounded-xl bg-amber-100 px-4 py-3 text-center text-sm font-medium text-amber-900">
+              Please re-add your Box of 12 to continue.
+            </p>
+          ) : (
+            <Link
+              href="/checkout"
+              className="mt-6 block w-full rounded-full bg-terracotta px-6 py-3 text-center font-semibold text-background transition-colors hover:bg-rust"
+            >
+              Checkout
+            </Link>
+          )}
         </div>
       </div>
     </section>

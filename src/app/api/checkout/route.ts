@@ -13,6 +13,7 @@ import type { CartLineItem } from "@/lib/cart-context";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { formatWeekendDate } from "@/lib/weekend-dates";
 import { getWeekendOptions } from "@/lib/availability";
+import { applyPromotions, boxOf12NeedsReselect } from "@/lib/promotions";
 
 type Fulfillment =
   | { kind: "event"; eventDate: string; venue: string }
@@ -84,7 +85,23 @@ export async function POST(request: Request) {
     );
   }
 
+  // A Box of 12 picked under the other promo rules (12 flavors vs 14) is a
+  // cart left over from before/after a promotion started or ended; ask them
+  // to re-pick rather than charge a surprising amount.
+  if (items.some((i) => boxOf12NeedsReselect(i))) {
+    return NextResponse.json(
+      {
+        error:
+          "Our Box of 12 offer changed while this was in your cart. Please remove the Box of 12 and add it again.",
+      },
+      { status: 400 },
+    );
+  }
+
   const lineItems = buildSquareLineItems(items);
+  // Computed here, on the server, from the cart lines: the browser's view of
+  // the discount is only a preview. Empty outside a promotion's dates.
+  const promo = applyPromotions(items);
 
   let ctxFulfillment: CheckoutContext["fulfillment"];
 
@@ -197,7 +214,11 @@ export async function POST(request: Request) {
   // it's split this way.
   let paymentLink;
   try {
-    paymentLink = await createPaymentLink(lineItems, customerEmail.trim());
+    paymentLink = await createPaymentLink(
+      lineItems,
+      customerEmail.trim(),
+      promo.discounts,
+    );
   } catch (err) {
     console.error("Square payment link creation failed", err);
     // Still as specific as we can safely be about WHY, falling back to a

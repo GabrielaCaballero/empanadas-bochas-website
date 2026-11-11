@@ -6,6 +6,7 @@ import { useCart } from "@/lib/cart-context";
 import type { EventEntry } from "@/lib/events";
 import { computeDeliveryFeeCents, type DeliveryZone } from "@/lib/delivery-pricing";
 import { formatPrice } from "@/lib/square";
+import { applyPromotions } from "@/lib/promotions";
 import {
   whatsAppUrl,
   PICKUP_AREA_FULL,
@@ -275,7 +276,14 @@ export default function CheckoutClient({
   // Square itself applies (see createPaymentLink). This is an ESTIMATE for
   // the customer to see before paying; Square computes the real, final
   // amount when the order is actually created.
-  const preTaxTotalCents = grandTotalCents + deliveryFeeCents;
+  //
+  // Promotion discounts (lib/promotions.ts) come off the merchandise first,
+  // so tax is charged on the discounted amount. The delivery fee, and the
+  // free-delivery threshold above, are measured on the pre-discount total
+  // (grandTotalCents) on purpose: a sale shouldn't cost anyone free delivery.
+  const promo = applyPromotions(items);
+  const preTaxTotalCents =
+    grandTotalCents - promo.totalDiscountCents + deliveryFeeCents;
   const taxCents = taxRate ? Math.round(preTaxTotalCents * taxRate) : 0;
   const orderTotalCents = preTaxTotalCents + taxCents;
 
@@ -447,9 +455,8 @@ export default function CheckoutClient({
       {topChoice === "delivery" && (
         <div className="mt-4 flex flex-col gap-4">
           <WeekendNotice mode="delivery" />
-          <FreeDeliveryProgress subtotalCents={grandTotalCents} />
           <div>
-            <label className="text-sm font-medium text-maroon/70">
+            <label className="block text-sm font-medium text-maroon/70">
               ZIP code
             </label>
             <input
@@ -461,17 +468,38 @@ export default function CheckoutClient({
               required
               className="mt-1 w-full max-w-40 rounded-xl border border-maroon/20 bg-background px-4 py-3 text-maroon"
             />
+            {zipCode.length < 5 && (
+              <p className="mt-2 text-sm text-maroon/60">
+                Enter your ZIP code to see your delivery price. You&rsquo;ll
+                add your street address next.
+              </p>
+            )}
             {zipCode.length === 5 &&
               (matchedZone ? (
-                <p className="mt-2 text-sm text-maroon/70">
-                  {matchedZone.neighborhood}, {matchedZone.borough} — delivery
-                  is{" "}
-                  {matchedZoneFeeCents === 0 ? (
-                    <span className="font-bold text-green-600">Free</span>
-                  ) : (
-                    formatPrice(matchedZoneFeeCents)
+                // The ZIP alone is enough to price delivery, so the price (and
+                // how close the order is to free delivery) shows right away,
+                // before the street address is asked for.
+                <div className="mt-3 flex flex-col gap-3">
+                  <div className="flex items-center justify-between gap-3 rounded-2xl bg-cream px-4 py-3 text-maroon">
+                    <span className="text-sm">
+                      Delivery to{" "}
+                      <strong>
+                        {matchedZone.neighborhood}, {matchedZone.borough}
+                      </strong>
+                    </span>
+                    <span className="shrink-0 text-lg font-semibold">
+                      {matchedZoneFeeCents === 0 ? (
+                        <span className="font-bold text-green-600">Free</span>
+                      ) : (
+                        formatPrice(matchedZoneFeeCents)
+                      )}
+                    </span>
+                  </div>
+                  {/* Not shown for zones that are always free: nothing to add. */}
+                  {matchedZone.priceCents > 0 && (
+                    <FreeDeliveryProgress subtotalCents={grandTotalCents} />
                   )}
-                </p>
+                </div>
               ) : (
                 <div className="mt-2 flex flex-col gap-2">
                   <p className="text-sm text-red-600">
@@ -532,6 +560,15 @@ export default function CheckoutClient({
           <span>Order total</span>
           <span>{formatPrice(orderTotalCents)}</span>
         </div>
+        {promo.discounts.map((d) => (
+          <div
+            key={d.name}
+            className="mt-1 flex items-start justify-between gap-3 text-sm font-medium text-green-700"
+          >
+            <span>{d.name}</span>
+            <span className="shrink-0">−{formatPrice(d.amountCents)}</span>
+          </div>
+        ))}
         {selection?.kind === "delivery" && (
           <div className="mt-1 flex items-center justify-between text-sm text-maroon/70">
             <span>Delivery</span>

@@ -8,6 +8,14 @@ import AddToCart from "@/components/AddToCart";
 import Accordion from "@/components/Accordion";
 import AllergenLegend from "@/components/AllergenLegend";
 import { sectionOf } from "@/lib/catalog-sections";
+import {
+  box12PromoPriceCents,
+  isAlfajorName,
+  isBoxOf6Name,
+  isPromoActive,
+  PROMO_NAME,
+  PROMO_THROUGH_LABEL,
+} from "@/lib/promotions";
 
 export const revalidate = 300;
 
@@ -53,7 +61,14 @@ export default async function ProductPage({
     notFound();
   }
 
-  const price = formatPrice(item.variations[0]?.priceCents ?? null);
+  const listPriceCents = item.variations[0]?.priceCents ?? null;
+  const promoActive = isPromoActive();
+  const isBoxOf12 = item.requiredFlavorCount === 12;
+  const onSale = promoActive && isBoxOf12 && listPriceCents != null;
+  const currentPriceCents =
+    onSale ? box12PromoPriceCents(listPriceCents) : listPriceCents;
+  const price = formatPrice(currentPriceCents);
+  const listPrice = onSale ? formatPrice(listPriceCents) : null;
   const salesTax = await getActiveSalesTax();
   // Cross-sell: lead with the other side of the menu (alfajores on an
   // empanada page, empanadas on an alfajor page), then top up with more from
@@ -73,10 +88,10 @@ export default async function ProductPage({
     name: item.name.trim(),
     description: item.description ?? undefined,
     image: item.imageUrl ?? undefined,
-    offers: item.variations[0]?.priceCents
+    offers: currentPriceCents
       ? {
           "@type": "Offer",
-          price: (item.variations[0].priceCents / 100).toFixed(2),
+          price: (currentPriceCents / 100).toFixed(2),
           priceCurrency: "USD",
           availability: "https://schema.org/InStock",
         }
@@ -108,22 +123,49 @@ export default async function ProductPage({
             {item.name.trim()}
           </h1>
           <p className="mt-2 flex items-center gap-2 text-xl font-medium text-terracotta">
+            {listPrice && (
+              <s className="text-base font-normal text-maroon/50">{listPrice}</s>
+            )}
             {price ?? "Ask for pricing"}
             {price && salesTax && (
               <span className="text-sm font-normal text-maroon/50">
                 + tax
               </span>
             )}
-            {item.requiredFlavorCount === 12 && (
+            {isBoxOf12 && (
               <span className="rounded-full bg-terracotta px-3 py-1 text-sm font-bold tracking-wide text-background shadow-sm">
-                🎉 2 FREE
+                {promoActive ? "10% OFF" : "🎉 2 FREE"}
               </span>
             )}
           </p>
           {item.description && (
             <p className="mt-4 text-maroon/70">{item.description}</p>
           )}
-          {item.requiredFlavorCount === 12 && (
+          {promoActive && (
+            <div className="mt-4 rounded-2xl border-2 border-terracotta/30 bg-terracotta/10 px-4 py-3 text-sm font-medium text-maroon">
+              <p className="font-bold uppercase tracking-wide text-terracotta">
+                ⏳ Limited time · {PROMO_NAME} special, through{" "}
+                {PROMO_THROUGH_LABEL}
+              </p>
+              {isBoxOf12 && (
+                <p className="mt-1">
+                  10% off the Box of 12. Choose 12 flavors below.
+                </p>
+              )}
+              {isBoxOf6Name(item.name) && (
+                <p className="mt-1">
+                  🎁 Free alfajor with every Box of 6. You can add it in your
+                  cart.
+                </p>
+              )}
+              {isAlfajorName(item.name) && (
+                <p className="mt-1">
+                  🍪 Buy 2 alfajores, get 1 free. Mix and match flavors.
+                </p>
+              )}
+            </div>
+          )}
+          {isBoxOf12 && !promoActive && (
             <div className="mt-4 flex items-start gap-3 rounded-2xl border-2 border-terracotta/30 bg-terracotta/10 px-4 py-3">
               <span className="text-2xl">🎉</span>
               <p className="text-sm font-medium text-maroon">
@@ -136,7 +178,7 @@ export default async function ProductPage({
             </div>
           )}
 
-          <AddToCart item={item} />
+          <AddToCart item={item} promoActive={promoActive} />
 
           <div className="mt-10">
             {item.flavors && (

@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { getActiveSalesTax } from "@/lib/square";
 import { getShopProducts } from "@/lib/shop-products";
 import ShopTabs from "@/components/ShopTabs";
+import { PromoStrip } from "@/components/PromoSection";
+import { isPromoActive } from "@/lib/promotions";
 
 export const revalidate = 300;
 
@@ -22,10 +24,15 @@ export default async function ShopPage() {
   return (
     <section className="mx-auto w-full max-w-6xl flex-1 px-6 py-8 sm:py-10">
       <h1 className="font-display text-4xl font-semibold text-maroon">Shop</h1>
+      <PromoStrip />
       {/* useSearchParams inside ShopTabs needs a Suspense boundary so the
           rest of the page can stay statically cached. */}
       <Suspense>
-        <ShopTabs items={items} hasTax={Boolean(salesTax)} />
+        <ShopTabs
+          items={items}
+          hasTax={Boolean(salesTax)}
+          promoActive={isPromoActive()}
+        />
       </Suspense>
     </section>
   );
