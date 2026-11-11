@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { getActiveSalesTax } from "@/lib/square";
 import { getShopProducts } from "@/lib/shop-products";
 import CartClient from "@/components/CartClient";
+import { isAlfajorName } from "@/lib/promotions";
 
 export const revalidate = 300;
 
@@ -20,6 +21,17 @@ export default async function CartPage() {
   const sauceVariations = (sauceItem?.variations ?? [])
     .filter((v) => v.priceCents != null)
     .map((v) => ({ id: v.id, name: v.name, priceCents: v.priceCents as number }));
+
+  // The alfajors, for the cart's "add your free alfajor" buttons. Each flavor
+  // is its own product (see shop-products.ts), so id doubles as itemId.
+  const alfajorOptions = items
+    .filter((i) => isAlfajorName(i.name) && i.variations[0]?.priceCents != null)
+    .map((i) => ({
+      id: i.id,
+      variationId: i.variations[0].id,
+      name: i.name.trim(),
+      priceCents: i.variations[0].priceCents as number,
+    }));
 
   // Looked up by itemId rather than stored on the cart line item itself, so
   // the cart's localStorage shape doesn't need to change (and old carts
@@ -53,6 +65,7 @@ export default async function CartPage() {
         sauceVariations={sauceVariations}
         productsById={productsById}
         suggestedProduct={suggestedProduct}
+        alfajorOptions={alfajorOptions}
         taxRate={salesTax?.rate ?? null}
         taxName={salesTax?.name ?? null}
       />

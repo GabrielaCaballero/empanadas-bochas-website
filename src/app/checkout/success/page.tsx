@@ -155,6 +155,7 @@ export default async function CheckoutSuccessPage({
       lineItems={order.lineItems}
       totalCents={order.totalCents}
       totalTaxCents={order.totalTaxCents}
+      discounts={order.discounts}
     />
   );
 }

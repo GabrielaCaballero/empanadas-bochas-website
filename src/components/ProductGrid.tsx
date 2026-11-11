@@ -1,6 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { formatPrice, type CatalogItem } from "@/lib/square";
+import {
+  box12PromoPriceCents,
+  isAlfajorName,
+  EMPANADAS_PER_FREE_ALFAJOR,
+} from "@/lib/promotions";
 
 // The photo-card grid used by every product section (Empanadas, Alfajores).
 // Product pages themselves stay at /shop/[id] regardless of section, so
@@ -8,16 +13,35 @@ import { formatPrice, type CatalogItem } from "@/lib/square";
 export default function ProductGrid({
   items,
   hasTax,
+  promoActive = false,
 }: {
   items: CatalogItem[];
   hasTax: boolean;
+  // Whether a limited-time promotion is running (decided by the server page
+  // that renders this, so the whole page agrees on it). See lib/promotions.ts.
+  promoActive?: boolean;
 }) {
   return (
     <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
       {items.map((item) => {
-        const price = formatPrice(item.variations[0]?.priceCents ?? null);
-
+        const listPriceCents = item.variations[0]?.priceCents ?? null;
         const isBoxOf12 = item.requiredFlavorCount === 12;
+        // During the sale the Box of 12 shows its discounted price (list
+        // price struck through) instead of the usual "2 FREE".
+        const onSale = promoActive && isBoxOf12 && listPriceCents != null;
+        const price = formatPrice(
+          onSale ? box12PromoPriceCents(listPriceCents) : listPriceCents,
+        );
+        const listPrice = onSale ? formatPrice(listPriceCents) : null;
+        // Small deal tags, only while a promotion runs.
+        const dealTags: string[] = [];
+        if (promoActive && isAlfajorName(item.name)) dealTags.push("Buy 2, get 1 free");
+        if (
+          promoActive &&
+          (item.requiredFlavorCount ?? 0) >= EMPANADAS_PER_FREE_ALFAJOR
+        ) {
+          dealTags.push("🎁 Free alfajor");
+        }
 
         return (
           <Link
@@ -41,10 +65,22 @@ export default function ProductGrid({
                   sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                 />
               )}
-              {isBoxOf12 && (
-                <span className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-terracotta px-3 py-1.5 text-xs font-bold tracking-wide text-background shadow-lg">
-                  🎉 2 FREE
-                </span>
+              {(isBoxOf12 || dealTags.length > 0) && (
+                <div className="absolute left-3 top-3 z-10 flex flex-col items-start gap-1">
+                  {isBoxOf12 && (
+                    <span className="flex items-center gap-1 rounded-full bg-terracotta px-3 py-1.5 text-xs font-bold tracking-wide text-background shadow-lg">
+                      {promoActive ? "10% OFF" : "🎉 2 FREE"}
+                    </span>
+                  )}
+                  {dealTags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full bg-background/95 px-3 py-1 text-xs font-bold tracking-wide text-terracotta shadow"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
               )}
             </div>
 
@@ -58,13 +94,18 @@ export default function ProductGrid({
                 {item.name.trim()}
               </h2>
               <p className="mt-0.5 font-medium text-terracotta transition-colors duration-300 group-hover:text-cream">
+                {listPrice && (
+                  <s className="mr-1.5 text-sm font-normal text-maroon/50 transition-colors duration-300 group-hover:text-cream/70">
+                    {listPrice}
+                  </s>
+                )}
                 {price ?? "Ask for pricing"}
                 {price && hasTax && (
                   <span className="ml-1 text-xs font-normal text-maroon/50 transition-colors duration-300 group-hover:text-cream/70">
                     + tax
                   </span>
                 )}
-                {isBoxOf12 && (
+                {isBoxOf12 && !promoActive && (
                   <span className="ml-1.5 font-semibold text-maroon/60 transition-colors duration-300 group-hover:text-cream/80">
                     · 14 empanadas, 2 free!
                   </span>

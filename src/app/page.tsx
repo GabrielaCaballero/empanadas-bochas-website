@@ -2,8 +2,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { flavorInfo } from "@/lib/flavor-info";
 import VideoHero from "@/components/VideoHero";
+import PromoSection from "@/components/PromoSection";
 import Testimonials from "@/components/Testimonials";
 import AllergenLegend, { VegBadge } from "@/components/AllergenLegend";
+
+// The promotions block turns itself off when the sale ends, so this page has
+// to be re-rendered periodically instead of frozen at build time.
+export const revalidate = 300;
 
 const photos = [
   {
@@ -57,6 +62,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <PromoSection />
 
       <section className="grid w-full grid-cols-1 gap-1 sm:grid-cols-2">
         {photos.map((photo) => (

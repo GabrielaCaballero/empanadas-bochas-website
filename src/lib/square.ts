@@ -250,6 +250,10 @@ export class SquareApiError extends Error {
 export async function createPaymentLink(
   lineItems: CheckoutLineItem[],
   buyerEmail?: string,
+  // Promotion discounts (see lib/promotions.ts). Each is a fixed-amount,
+  // order-level discount: Square shows it by name on the receipt and takes
+  // it off BEFORE computing tax, so tax is charged on the discounted total.
+  discounts: { name: string; amountCents: number }[] = [],
 ): Promise<{
   id: string;
   url: string;
@@ -287,6 +291,15 @@ export async function createPaymentLink(
             currency: "USD",
           },
         })),
+        discounts: discounts.length
+          ? discounts.map((d, i) => ({
+              uid: `promo-${i}`,
+              name: d.name,
+              type: "FIXED_AMOUNT",
+              scope: "ORDER",
+              amount_money: { amount: d.amountCents, currency: "USD" },
+            }))
+          : undefined,
         taxes: salesTax
           ? [
               {
@@ -372,6 +385,8 @@ export type OrderSummary = {
   state: string;
   totalCents: number;
   totalTaxCents: number;
+  // Promotion discounts applied to the order (empty when none).
+  discounts: { name: string; amountCents: number }[];
   lineItems: {
     name: string;
     quantity: string;
@@ -392,6 +407,10 @@ function mapOrderSummary(o: SquareObject): OrderSummary {
     state: o.state,
     totalCents: o.total_money?.amount ?? 0,
     totalTaxCents: o.total_tax_money?.amount ?? 0,
+    discounts: (o.discounts ?? []).map((d: SquareObject) => ({
+      name: d.name ?? "Discount",
+      amountCents: d.applied_money?.amount ?? 0,
+    })),
     lineItems: (o.line_items ?? []).map((li: SquareObject) => ({
       name: li.name,
       quantity: li.quantity,

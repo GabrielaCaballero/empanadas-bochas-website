@@ -24,7 +24,7 @@ export async function buildOrderReceiptPdf({
 
   // Height is derived from content, so this grows if there's a long order.
   const lineCount = order.lineItems.length;
-  const height = 260 + lineCount * 18;
+  const height = 260 + lineCount * 18 + order.discounts.length * 18;
   const page = doc.addPage([PAGE_WIDTH, height]);
 
   let y = height - MARGIN;
@@ -115,6 +115,9 @@ export async function buildOrderReceiptPdf({
   });
   y -= 20;
 
+  for (const d of order.discounts) {
+    draw(`${d.name}: -${formatPrice(d.amountCents)}`, { size: 11, color: GRAY, gap: 18 });
+  }
   if (order.totalTaxCents > 0) {
     draw(`Tax: ${formatPrice(order.totalTaxCents)}`, { size: 11, color: GRAY, gap: 18 });
   }

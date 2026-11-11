@@ -27,6 +27,7 @@ export default function CheckoutSuccessClient({
   lineItems,
   totalCents,
   totalTaxCents,
+  discounts,
 }: {
   customerName: string;
   customerEmail: string;
@@ -39,6 +40,7 @@ export default function CheckoutSuccessClient({
   }[];
   totalCents: number;
   totalTaxCents: number;
+  discounts: { name: string; amountCents: number }[];
 }) {
   const { clearCart } = useCart();
 
@@ -148,13 +150,26 @@ export default function CheckoutSuccessClient({
             </li>
           ))}
         </ul>
-        {totalTaxCents > 0 && (
-          <div className="mt-3 flex items-center justify-between border-t border-maroon/10 pt-3 text-sm text-maroon/70">
-            <span>Tax</span>
-            <span>{formatPrice(totalTaxCents)}</span>
+        {(discounts.length > 0 || totalTaxCents > 0) && (
+          <div className="mt-3 flex flex-col gap-1 border-t border-maroon/10 pt-3 text-sm">
+            {discounts.map((d) => (
+              <div
+                key={d.name}
+                className="flex items-start justify-between gap-3 font-medium text-green-700"
+              >
+                <span>{d.name}</span>
+                <span className="shrink-0">−{formatPrice(d.amountCents)}</span>
+              </div>
+            ))}
+            {totalTaxCents > 0 && (
+              <div className="flex items-center justify-between text-maroon/70">
+                <span>Tax</span>
+                <span>{formatPrice(totalTaxCents)}</span>
+              </div>
+            )}
           </div>
         )}
-        <div className={`flex items-center justify-between pt-3 font-semibold text-maroon ${totalTaxCents > 0 ? "" : "mt-4 border-t border-maroon/10"}`}>
+        <div className={`flex items-center justify-between pt-3 font-semibold text-maroon ${discounts.length > 0 || totalTaxCents > 0 ? "" : "mt-4 border-t border-maroon/10"}`}>
           <span>Total</span>
           <span>{formatPrice(totalCents)}</span>
         </div>

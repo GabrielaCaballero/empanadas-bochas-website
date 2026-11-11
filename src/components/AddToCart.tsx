@@ -7,19 +7,33 @@ import { useCart } from "@/lib/cart-context";
 import type { CatalogItem } from "@/lib/square";
 import { flavorInfo } from "@/lib/flavor-info";
 import { VegBadge } from "@/components/AllergenLegend";
+import {
+  BOX_OF_12_PROMO_FLAVOR_COUNT,
+  BOX_OF_12_REGULAR_FLAVOR_COUNT,
+} from "@/lib/promotions";
 
-// Box of 12 runs a "buy 12, get 2 free" promo — customers pick 14 flavors
-// total and receive 14 empanadas, still charged the $60 Box-of-12 price.
-// Square's catalog only defines the paid 12 (via requiredFlavorCount), so
-// this bumps the picker's required count for that one product rather than
-// changing catalog data the business owner manages directly in Square.
-const BOX_OF_12_PROMO_COUNT = 14;
-
-export default function AddToCart({ item }: { item: CatalogItem }) {
+// Box of 12 normally runs a "buy 12, get 2 free" deal: customers pick 14
+// flavors total and receive 14 empanadas, still charged the $60 Box-of-12
+// price. Square's catalog only defines the paid 12 (via requiredFlavorCount),
+// so this bumps the picker's required count for that one product rather than
+// changing catalog data the business owner manages directly in Square. During
+// a limited-time promotion (lib/promotions.ts) the "2 free" is paused: 12
+// flavors, with the discount applied at checkout instead.
+export default function AddToCart({
+  item,
+  promoActive = false,
+}: {
+  item: CatalogItem;
+  promoActive?: boolean;
+}) {
   const { addItem } = useCart();
   const rawRequired = item.requiredFlavorCount ?? 0;
   const isBoxOf12 = rawRequired === 12;
-  const required = isBoxOf12 ? BOX_OF_12_PROMO_COUNT : rawRequired;
+  const required = isBoxOf12
+    ? promoActive
+      ? BOX_OF_12_PROMO_FLAVOR_COUNT
+      : BOX_OF_12_REGULAR_FLAVOR_COUNT
+    : rawRequired;
   const hasFlavors = Boolean(item.flavors?.length && rawRequired > 0);
   const hasVariantChoice = !hasFlavors && item.variations.length > 1;
 
@@ -80,7 +94,7 @@ export default function AddToCart({ item }: { item: CatalogItem }) {
           <div className="flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-sm font-medium text-maroon/60">
               Choose your flavors
-              {isBoxOf12 && (
+              {isBoxOf12 && !promoActive && (
                 <span className="rounded-full bg-terracotta px-2 py-0.5 text-xs font-bold tracking-wide text-background">
                   🎉 2 FREE
                 </span>

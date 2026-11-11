@@ -6,6 +6,7 @@ import { useCart } from "@/lib/cart-context";
 import type { EventEntry } from "@/lib/events";
 import { computeDeliveryFeeCents, type DeliveryZone } from "@/lib/delivery-pricing";
 import { formatPrice } from "@/lib/square";
+import { applyPromotions } from "@/lib/promotions";
 import {
   whatsAppUrl,
   PICKUP_AREA_FULL,
@@ -275,7 +276,14 @@ export default function CheckoutClient({
   // Square itself applies (see createPaymentLink). This is an ESTIMATE for
   // the customer to see before paying; Square computes the real, final
   // amount when the order is actually created.
-  const preTaxTotalCents = grandTotalCents + deliveryFeeCents;
+  //
+  // Promotion discounts (lib/promotions.ts) come off the merchandise first,
+  // so tax is charged on the discounted amount. The delivery fee, and the
+  // free-delivery threshold above, are measured on the pre-discount total
+  // (grandTotalCents) on purpose: a sale shouldn't cost anyone free delivery.
+  const promo = applyPromotions(items);
+  const preTaxTotalCents =
+    grandTotalCents - promo.totalDiscountCents + deliveryFeeCents;
   const taxCents = taxRate ? Math.round(preTaxTotalCents * taxRate) : 0;
   const orderTotalCents = preTaxTotalCents + taxCents;
 
@@ -532,6 +540,15 @@ export default function CheckoutClient({
           <span>Order total</span>
           <span>{formatPrice(orderTotalCents)}</span>
         </div>
+        {promo.discounts.map((d) => (
+          <div
+            key={d.name}
+            className="mt-1 flex items-start justify-between gap-3 text-sm font-medium text-green-700"
+          >
+            <span>{d.name}</span>
+            <span className="shrink-0">−{formatPrice(d.amountCents)}</span>
+          </div>
+        ))}
         {selection?.kind === "delivery" && (
           <div className="mt-1 flex items-center justify-between text-sm text-maroon/70">
             <span>Delivery</span>

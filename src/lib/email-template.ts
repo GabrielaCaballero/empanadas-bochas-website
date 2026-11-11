@@ -63,18 +63,32 @@ export function buildOrderItemsTableHtml(order: OrderSummary): string {
     })
     .join("");
 
-  const taxRow =
-    order.totalTaxCents > 0
-      ? `
+  // Discounts (promotions) and tax sit between the items and the total; the
+  // first of whichever rows exist carries the terracotta rule.
+  const summaryRows: { label: string; value: string; color: string }[] = [
+    ...order.discounts.map((d) => ({
+      label: d.name,
+      value: `\u2212${formatPrice(d.amountCents)}`,
+      color: "#2f7a3e",
+    })),
+    ...(order.totalTaxCents > 0
+      ? [{ label: "Tax", value: formatPrice(order.totalTaxCents) ?? "", color: MUTED }]
+      : []),
+  ];
+  const taxRow = summaryRows
+    .map((r, i) => {
+      const rule = i === 0 ? `border-top:2px solid ${TERRACOTTA};` : "";
+      return `
       <tr>
-        <td style="padding:6px 14px;font-size:13px;color:${MUTED};border-top:2px solid ${TERRACOTTA};">
-          Tax
+        <td style="padding:6px 14px;font-size:13px;color:${r.color};${rule}">
+          ${r.label}
         </td>
-        <td style="padding:6px 14px;font-size:13px;color:${MUTED};text-align:right;border-top:2px solid ${TERRACOTTA};">
-          ${formatPrice(order.totalTaxCents)}
+        <td style="padding:6px 14px;font-size:13px;color:${r.color};text-align:right;${rule}">
+          ${r.value}
         </td>
-      </tr>`
-      : "";
+      </tr>`;
+    })
+    .join("");
 
   return `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border-radius:12px;overflow:hidden;border:1px solid #eee0cf;">

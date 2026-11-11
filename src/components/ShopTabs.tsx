@@ -49,9 +49,11 @@ const TABS: {
 export default function ShopTabs({
   items,
   hasTax,
+  promoActive,
 }: {
   items: CatalogItem[];
   hasTax: boolean;
+  promoActive: boolean;
 }) {
   // The URL is the source of truth, so /shop?type=sweet (the old /alfajores
   // redirect, or a shared link) opens on Sweet and back/forward just work.
@@ -124,7 +126,7 @@ export default function ShopTabs({
           </div>
         )}
         <div
-          className={`relative p-5 sm:max-w-md sm:p-10 ${
+          className={`relative p-5 sm:max-w-[42%] sm:p-8 ${
             active.imageKind === "photo" ? "pt-12" : "pt-3"
           }`}
         >
@@ -138,7 +140,7 @@ export default function ShopTabs({
       </div>
 
       {visible.length > 0 ? (
-        <ProductGrid items={visible} hasTax={hasTax} />
+        <ProductGrid items={visible} hasTax={hasTax} promoActive={promoActive} />
       ) : (
         <p className="mt-10 text-maroon/70">
           Nothing here right now. Check back soon.
